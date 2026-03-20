@@ -1,0 +1,41 @@
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
+import Post from "@/models/Post";
+import { NextResponse } from "next/server";
+import md5 from "md5";
+
+export async function GET(
+  req: Request,
+  { params }: { params: { handle: string } }
+) {
+  await dbConnect();
+  try {
+    const handle = params.handle;
+    
+    // Find the user by their slackId (handle)
+    const user = await User.findOne({ slackId: handle.toLowerCase() }).lean();
+    
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Get their posts
+    const posts = await Post.find({ "author.id": user.id || user._id.toString() })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    // Generate Gravatar
+    const gravatar = `https://www.gravatar.com/avatar/${md5(user.email.toLowerCase().trim())}?d=identicon&s=200`;
+
+    return NextResponse.json({
+      user: {
+        ...user,
+        image: gravatar
+      },
+      posts
+    });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch user profile" }, { status: 500 });
+  }
+}
