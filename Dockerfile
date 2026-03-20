@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package.json package-lock.json* tsconfig.json next.config.js ./
+COPY package.json package-lock.json* tsconfig.json ./
 COPY src ./src
 COPY public ./public
 
@@ -23,7 +23,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/app ./app
-COPY --from=builder /app/next.config.js ./next.config.js
 
 EXPOSE 4555
 

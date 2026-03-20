@@ -1,4 +1,4 @@
-import dbConnect from "@/lib/db";
+clearImmediateimport dbConnect from "@/lib/db";
 import User from "@/models/User";
 import Post from "@/models/Post";
 import { NextResponse } from "next/server";
