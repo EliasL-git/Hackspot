@@ -3,37 +3,23 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { genericOAuth } from "better-auth/plugins";
 import { MongoClient } from "mongodb";
 
-const client = new MongoClient(process.env.MONGODB_URI!);
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/hackspost";
+const client = new MongoClient(MONGODB_URI);
 const db = client.db("hackspost");
 
-export const auth = betterAuth({
-  database: mongodbAdapter(db),
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-  user: {
-    additionalFields: {
-      slackId: {
-        type: "string",
-        required: false,
-      },
-      verificationStatus: {
-        type: "string",
-        required: false,
-      },
-      githubUsername: {
-        type: "string",
-        required: false,
-      }
-    }
-  },
-  plugins: [
+const hackClubClientId = process.env.HACKCLUB_CLIENT_ID;
+const hackClubClientSecret = process.env.HACKCLUB_CLIENT_SECRET;
+
+const oauthPlugins = [];
+if (hackClubClientId && hackClubClientSecret) {
+  oauthPlugins.push(
     genericOAuth({
       config: [
         {
           providerId: "hackclub",
           discoveryUrl: "https://auth.hackclub.com/.well-known/openid-configuration",
-          clientId: process.env.HACKCLUB_CLIENT_ID!,
-          clientSecret: process.env.HACKCLUB_CLIENT_SECRET!,
+          clientId: hackClubClientId,
+          clientSecret: hackClubClientSecret,
           scopes: ["openid", "profile", "email", "verification_status", "slack_id"],
           redirectURI: (process.env.BETTER_AUTH_URL || "http://localhost:3000") + "/api/auth/oauth2/callback/hackclub",
           getUserInfo: async (token) => {
@@ -53,6 +39,29 @@ export const auth = betterAuth({
           },
         },
       ],
-    }),
-  ],
+    })
+  );
+}
+
+export const auth = betterAuth({
+  database: mongodbAdapter(db),
+  secret: process.env.BETTER_AUTH_SECRET || "dev-secret",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  user: {
+    additionalFields: {
+      slackId: {
+        type: "string",
+        required: false,
+      },
+      verificationStatus: {
+        type: "string",
+        required: false,
+      },
+      githubUsername: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
+  plugins: oauthPlugins,
 });
