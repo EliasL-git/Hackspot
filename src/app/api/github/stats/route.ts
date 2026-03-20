@@ -9,7 +9,19 @@ const octokit = new Octokit({
 });
 
 export async function GET(req: Request) {
-  const session = await auth.api.getSession({ headers: req.headers });
+  let session = null;
+  try {
+    // better-auth may throw when headers are empty or missing on internal build-time calls.
+    if (!req.headers?.get("cookie")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    session = await auth.api.getSession({ headers: req.headers });
+  } catch (err) {
+    console.error("Auth getSession failed:", err);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
