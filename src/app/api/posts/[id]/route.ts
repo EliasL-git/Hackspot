@@ -1,15 +1,14 @@
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: req.headers,
   });
 
   if (!session) {

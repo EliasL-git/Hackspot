@@ -8,6 +8,7 @@ export interface IPost extends Document {
     image?: string;
     slackId?: string;
     verificationStatus?: string;
+    tags?: string[];
   };
   hashtags: string[];
   likes: string[];

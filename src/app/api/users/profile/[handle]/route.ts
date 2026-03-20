@@ -1,16 +1,16 @@
-clearImmediateimport dbConnect from "@/lib/db";
+import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import Post from "@/models/Post";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import md5 from "md5";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { handle: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ handle: string }> }
 ) {
   await dbConnect();
   try {
-    const handle = params.handle;
+    const { handle } = await params;
     
     // Find the user by their slackId (handle)
     const user = await User.findOne({ slackId: handle.toLowerCase() }).lean();

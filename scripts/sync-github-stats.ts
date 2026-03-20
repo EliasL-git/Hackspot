@@ -75,7 +75,11 @@ async function forceCountAll() {
       await user.save();
       console.log(`✅ ${username}: ${totalLines.toLocaleString()} lines synced.`);
     } catch (err) {
-      console.error(`❌ Failed to sync ${username}:`, err.message);
+      if (err instanceof Error) {
+        console.error(`❌ Failed to sync ${username}:`, err.message);
+      } else {
+        console.error(`❌ Failed to sync ${username}:`, err);
+      }
     }
   }
 
