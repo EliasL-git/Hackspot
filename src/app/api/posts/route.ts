@@ -42,11 +42,17 @@ export async function GET(req: Request) {
       const email = user?.email || "hack@club.com";
       const gravatar = `https://www.gravatar.com/avatar/${md5(email.toLowerCase().trim())}?d=identicon&s=100`;
       
+      // If the author is Orpheus, prioritize his image from the database
+      let authorImage = post.author?.image;
+      if (post.author?.slackId === 'orpheus' && user?.image) {
+        authorImage = user.image;
+      }
+
       return {
         ...post,
         author: {
           ...post.author,
-          image: post.author?.image || gravatar
+          image: authorImage || gravatar
         }
       };
     }));

@@ -76,12 +76,21 @@ function HomePage() {
   };
 
   const handleLike = async (postId: string) => {
-    if (!session) return;
+    if (!session) {
+      alert("You must be logged in to like posts!");
+      return;
+    }
     try {
       const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
-      if (res.ok) fetchData();
+      if (res.ok) {
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        alert(`Failed to like: ${errorData.error || "Unknown error"}`);
+      }
     } catch (error) {
       console.error(error);
+      alert("An unexpected error occurred while liking.");
     }
   };
 
