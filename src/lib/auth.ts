@@ -76,6 +76,10 @@ export const auth = betterAuth({
         type: "string",
         required: false,
       },
+      equippedTag: {
+        type: "string",
+        required: false,
+      },
     },
   },
   plugins: oauthPlugins,

@@ -16,15 +16,15 @@ async function promote() {
   
   console.log("--- Hackspot User Promotion Tool ---");
   
-  const slackId = await question("Enter User Slack ID: ");
+  const slackId = await question("Enter Username: ");
   if (!slackId) {
-    console.log("Slack ID is required.");
+    console.log("Username is required.");
     process.exit(1);
   }
 
   const user = await User.findOne({ slackId });
   if (!user) {
-    console.log(`User with Slack ID "${slackId}" not found in database.`);
+    console.log(`User with Username "${slackId}" not found in database.`);
     process.exit(1);
   }
 

@@ -12,6 +12,7 @@ export interface IUser extends Document {
     lastUpdated: Date;
   };
   tags?: string[];
+  equippedTag?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +29,7 @@ const UserSchema: Schema = new Schema({
     lastUpdated: { type: Date },
   },
   tags: [{ type: String }],
+  equippedTag: { type: String },
 }, { 
   timestamps: true,
   collection: 'user',

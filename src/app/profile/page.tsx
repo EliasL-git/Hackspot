@@ -247,31 +247,32 @@ function ProfilePageContent() {
                   {user.verificationStatus === "verified" && (
                     <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }} title="Verified notable member">verified</span>
                   )}
-                  {Array.isArray(user.tags) && user.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ml-1 ${
-                        tag === 'bot' ? 'bg-blue-900 text-blue-300 border border-blue-400' :
-                        tag === 'owner' ? 'bg-yellow-900 text-yellow-300 border border-blue-400' :
-                        'bg-surface-container-highest text-on-surface-variant/60 border border-outline-variant/20'
-                      }`}
-                      title={
-                         tag === 'bot' ? 'This is an official Hackspot bot account.' :
-                         tag === 'owner' ? 'This user is the owner of Hackspot.' :
-                         tag === 'hackclubstaff' ? 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' :
-                         tag === 'contributor' ? 'Has contributed to the Hackspot codebase.' :
-                        tag === 'notable' ? 'A recognized member of the community.' :
-                        tag === 'verified' ? 'Identity verified by Hackspot.' :
-                        `Tag: ${tag}`
-                      }
-                    >
-                      {tag === 'bot' && <span className="material-symbols-outlined text-[16px] align-middle">smart_toy</span>}
-                      {tag === 'owner' && <span className="material-symbols-outlined text-[16px] align-middle">workspace_premium</span>}
-                      {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                    </span>
-                  ))}
+                  {Array.isArray(user.tags) && (user.equippedTag || user.tags[0]) && (
+                    (() => {
+                      const displayTag = user.equippedTag || user.tags[0];
+                      const tagMetadata: Record<string, { icon: string, label: string, color: string, desc: string }> = {
+                        bot: { icon: 'smart_toy', label: 'Bot', color: 'bg-blue-900 text-blue-300 border-blue-400', desc: 'This is an official Hackspot bot account.' },
+                        owner: { icon: 'workspace_premium', label: 'Owner', color: 'bg-yellow-900 text-yellow-300 border-yellow-400', desc: 'This user is the owner of Hackspot.' },
+                        hackclubstaff: { icon: 'badge', label: 'Staff', color: 'bg-red-900 text-red-300 border-red-400', desc: 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' },
+                        contributor: { icon: 'terminal', label: 'Contributor', color: 'bg-green-900 text-green-300 border-green-400', desc: 'This user has contributed to the Hackspot codebase.' },
+                        notable: { icon: 'star', label: 'Notable', color: 'bg-purple-900 text-purple-300 border-purple-400', desc: 'A recognized member of the community.' },
+                        verified: { icon: 'verified', label: 'Verified', color: 'bg-primary/20 text-primary border-primary/30', desc: 'Identity verified by Hackspot.' }
+                      };
+                      const meta = tagMetadata[displayTag] || { icon: 'label', label: displayTag.charAt(0).toUpperCase() + displayTag.slice(1), color: 'bg-surface-container-highest text-on-surface-variant/60 border-outline-variant/20', desc: `Tag: ${displayTag}` };
+                      
+                      return (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ml-1 border ${meta.color}`}
+                          title={meta.desc}
+                        >
+                          <span className="material-symbols-outlined text-[16px] align-middle">{meta.icon}</span>
+                          {meta.label}
+                        </span>
+                      );
+                    })()
+                  )}
                 </h2>
-                <p className="text-on-surface-variant font-label">@{user.slackId || user.id.slice(-6).toUpperCase()}</p>
+                <p className="text-on-surface-variant font-label" title="Username">@{user.slackId || user.id.slice(-6).toUpperCase()}</p>
               </div>
               
               <p className="text-on-surface max-w-xl text-lg font-body leading-relaxed">
@@ -281,8 +282,8 @@ function ProfilePageContent() {
               <div className="flex flex-wrap gap-y-2 gap-x-4 text-on-surface-variant font-label text-sm">
                 {user.slackId && (
                   <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">chat</span>
-                    <span>Slack: @{user.slackId}</span>
+                    <span className="material-symbols-outlined text-sm">account_circle</span>
+                    <span>Username: @{user.slackId}</span>
                   </div>
                 )}
                 {githubStats.totalLines > 0 && !githubStats.loading && (
@@ -296,6 +297,60 @@ function ProfilePageContent() {
                   <span>Joined March 2026</span>
                 </div>
               </div>
+
+              {/* Tag Equipment UI */}
+              {Array.isArray(user.tags) && user.tags.length > 1 && (
+                <div className="pt-4 border-t border-outline-variant/10">
+                  <p className="text-on-surface-variant font-headline font-bold text-sm mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">workspace_premium</span>
+                    Equip Tag to Show Off
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {user.tags.map((tag: string) => {
+                       const tagMetadata: Record<string, { icon: string, label: string, color: string, desc: string }> = {
+                        bot: { icon: 'smart_toy', label: 'Bot', color: 'bg-blue-900 text-blue-300 border-blue-400', desc: 'This is an official Hackspot bot account.' },
+                        owner: { icon: 'workspace_premium', label: 'Owner', color: 'bg-yellow-900 text-yellow-300 border-yellow-400', desc: 'This user is the owner of Hackspot.' },
+                        hackclubstaff: { icon: 'badge', label: 'Staff', color: 'bg-red-900 text-red-300 border-red-400', desc: 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' },
+                        contributor: { icon: 'terminal', label: 'Contributor', color: 'bg-green-900 text-green-300 border-green-400', desc: 'This user has contributed to the Hackspot codebase.' },
+                        notable: { icon: 'star', label: 'Notable', color: 'bg-purple-900 text-purple-300 border-purple-400', desc: 'A recognized member of the community.' },
+                        verified: { icon: 'verified', label: 'Verified', color: 'bg-primary/20 text-primary border-primary/30', desc: 'Identity verified by Hackspot.' }
+                      };
+                      const meta = tagMetadata[tag] || { icon: 'label', label: tag.charAt(0).toUpperCase() + tag.slice(1), color: 'bg-surface-container-highest text-on-surface-variant/60 border-outline-variant/20', desc: `Tag: ${tag}` };
+                      const isEquipped = user.equippedTag === tag || (!user.equippedTag && user.tags[0] === tag);
+                      
+                      return (
+                        <button
+                          key={tag}
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/user/update-equipped-tag', {
+                                method: 'POST',
+                                body: JSON.stringify({ tag }),
+                                headers: { 'Content-Type': 'application/json' }
+                              });
+                              if (res.ok) {
+                                window.location.reload();
+                              }
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            isEquipped 
+                              ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
+                              : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
+                          }`}
+                          title={meta.desc}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">{meta.icon}</span>
+                          {meta.label}
+                          {isEquipped && <span className="material-symbols-outlined text-[14px]">check_circle</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
