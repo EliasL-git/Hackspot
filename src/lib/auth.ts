@@ -25,7 +25,6 @@ if (hackClubClientId && hackClubClientSecret) {
           clientSecret: hackClubClientSecret,
           scopes: ["openid", "profile", "email", "verification_status", "slack_id"],
           redirectURI: (process.env.BETTER_AUTH_URL || "http://localhost:3000") + "/api/auth/oauth2/callback/hackclub",
-          callbackPath: "/oauth2/callback/hackclub",
           getUserInfo: async (token) => {
             console.log("Auth getUserInfo token:", token);
             const res = await fetch("https://auth.hackclub.com/userinfo", {
