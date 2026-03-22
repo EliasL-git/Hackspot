@@ -44,8 +44,18 @@ export async function GET(req: Request) {
       
       // If the author is Orpheus, prioritize his image from the database
       let authorImage = post.author?.image;
-      if (post.author?.slackId === 'orpheus' && user?.image) {
-        authorImage = user.image;
+      let authorTags = post.author?.tags || [];
+      let authorEquippedTag = post.author?.equippedTag;
+      let authorVerificationStatus = post.author?.verificationStatus;
+
+      if (post.author?.slackId === 'orpheus') {
+        const orpheus = await User.findOne({ slackId: 'orpheus' }).lean() as any;
+        if (orpheus) {
+          authorImage = orpheus.image || authorImage;
+          authorTags = orpheus.tags || authorTags;
+          authorEquippedTag = orpheus.equippedTag || (orpheus.tags && orpheus.tags[0]);
+          authorVerificationStatus = orpheus.verificationStatus || authorVerificationStatus;
+        }
       }
 
       return {
@@ -53,7 +63,9 @@ export async function GET(req: Request) {
         author: {
           ...post.author,
           image: authorImage || gravatar,
-          equippedTag: user?.equippedTag
+          tags: authorTags,
+          equippedTag: authorEquippedTag,
+          verificationStatus: authorVerificationStatus
         }
       };
     }));

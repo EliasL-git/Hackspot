@@ -6,6 +6,7 @@ import { User, ShieldCheck, Mail, Slack, X, Calendar, Code, ArrowLeft } from "lu
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
+import { UserTag } from "@/components/UserTag";
 
 function PublicProfileContent() {
   const params = useParams();
@@ -111,28 +112,7 @@ function PublicProfileContent() {
                     <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }} title="Verified notable member">verified</span>
                   )}
                   {Array.isArray(profile.tags) && (profile.equippedTag || profile.tags[0]) && (
-                    (() => {
-                      const displayTag = profile.equippedTag || profile.tags[0];
-                      const tagMetadata: Record<string, { icon: string, label: string, color: string, desc: string }> = {
-                        bot: { icon: 'smart_toy', label: 'Bot', color: 'bg-blue-900 text-blue-300 border-blue-400', desc: 'This is an official Hackspot bot account.' },
-                        owner: { icon: 'workspace_premium', label: 'Owner', color: 'bg-yellow-900 text-yellow-300 border-yellow-400', desc: 'This user is the owner of Hackspot.' },
-                        hackclubstaff: { icon: 'badge', label: 'Staff', color: 'bg-red-900 text-red-300 border-red-400', desc: 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' },
-                        contributor: { icon: 'terminal', label: 'Contributor', color: 'bg-green-900 text-green-300 border-green-400', desc: 'This user has contributed to the Hackspot codebase.' },
-                        notable: { icon: 'star', label: 'Notable', color: 'bg-purple-900 text-purple-300 border-purple-400', desc: 'A recognized member of the community.' },
-                        verified: { icon: 'verified', label: 'Verified', color: 'bg-primary/20 text-primary border-primary/30', desc: 'Identity verified by Hackspot.' }
-                      };
-                      const meta = tagMetadata[displayTag] || { icon: 'label', label: displayTag.charAt(0).toUpperCase() + displayTag.slice(1), color: 'bg-surface-container-highest text-on-surface-variant/60 border-outline-variant/20', desc: `Tag: ${displayTag}` };
-                      
-                      return (
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ml-1 border ${meta.color}`}
-                          title={meta.desc}
-                        >
-                          <span className="material-symbols-outlined text-[16px] align-middle">{meta.icon}</span>
-                          {meta.label}
-                        </span>
-                      );
-                    })()
+                    <UserTag tag={profile.equippedTag || profile.tags[0]} />
                   )}
                 </h2>
                 <p className="text-on-surface-variant font-label text-lg" title="Username">@{profile.slackId}</p>
