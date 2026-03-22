@@ -31,7 +31,7 @@ async function promote() {
   console.log(`Found user: ${user.name} (@${user.slackId})`);
   console.log(`Current tags: ${user.tags?.join(', ') || 'none'}`);
   
-  const tagsInput = await question("Enter tags to SET (comma-separated, e.g. staff,notable): ");
+  const tagsInput = await question("Enter tags to SET (comma-separated, e.g. hackclubstaff,notable): ");
   const newTags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
 
   const confirm = await question(`Are you sure you want to set tags to [${newTags.join(', ')}]? (y/n): `);

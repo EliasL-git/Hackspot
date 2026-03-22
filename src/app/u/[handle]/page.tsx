@@ -121,7 +121,7 @@ function PublicProfileContent() {
                       title={
                          tag === 'bot' ? 'This is an official Hackspot bot account.' :
                          tag === 'owner' ? 'This user is the owner of Hackspot.' :
-                         tag === 'staff' ? 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' :
+                         tag === 'hackclubstaff' ? 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' :
                          tag === 'contributor' ? 'Has contributed to the Hackspot codebase.' :
                         tag === 'notable' ? 'A recognized member of the community.' :
                         tag === 'verified' ? 'Identity verified by Hackspot.' :
