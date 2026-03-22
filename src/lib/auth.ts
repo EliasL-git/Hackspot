@@ -29,6 +29,13 @@ if (hackClubClientId && hackClubClientSecret) {
             const res = await fetch("https://auth.hackclub.com/userinfo", {
               headers: { Authorization: `Bearer ${token.accessToken}` },
             });
+            
+            if (!res.ok) {
+              const text = await res.text();
+              console.error(`Auth getUserInfo failed with status ${res.status}:`, text);
+              throw new Error(`Failed to fetch user info: ${res.status}`);
+            }
+
             const profile = await res.json();
             return {
               id: profile.sub,
@@ -50,6 +57,9 @@ export const auth = betterAuth({
   database: mongodbAdapter(db),
   secret: process.env.BETTER_AUTH_SECRET || "dev-secret",
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  advanced: {
+    trustProxy: true
+  },
   user: {
     additionalFields: {
       slackId: {
