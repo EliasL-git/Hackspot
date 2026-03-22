@@ -2,13 +2,16 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
+const URI = MONGODB_URI || 'mongodb://localhost:27017/hackspost';
+
 if (!MONGODB_URI) {
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('Please define the MONGODB_URI environment variable');
+    console.warn('Warning: MONGODB_URI is not defined in production. This might cause runtime errors if not during build phase.');
   } else {
-    console.warn('Warning: MONGODB_URI is not defined. Database operations will fail.');
+    console.warn('Warning: MONGODB_URI is not defined. Using fallback mongodb://localhost:27017/hackspost. This is only suitable for local dev.');
   }
 }
+
 
 let cached = (global as any).mongoose;
 
@@ -27,7 +30,7 @@ async function dbConnect() {
       dbName: 'hackspost'
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(URI, opts).then((mongoose) => {
       return mongoose;
     });
   }

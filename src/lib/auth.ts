@@ -4,6 +4,9 @@ import { genericOAuth } from "better-auth/plugins";
 import { MongoClient } from "mongodb";
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/hackspost";
+
+// During build time, we don't want to fail if the URI is missing
+// especially since Next.js might evaluate this module.
 const client = new MongoClient(MONGODB_URI);
 const db = client.db("hackspost");
 
