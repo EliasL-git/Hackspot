@@ -52,7 +52,8 @@ export async function GET(req: Request) {
         ...post,
         author: {
           ...post.author,
-          image: authorImage || gravatar
+          image: authorImage || gravatar,
+          equippedTag: user?.equippedTag
         }
       };
     }));
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
             slackId: orpheus.slackId,
             verificationStatus: orpheus.verificationStatus,
             tags: orpheus.tags || ['bot'],
+            equippedTag: orpheus.equippedTag || (orpheus.tags && orpheus.tags[0]),
           },
           createdAt: new Date()
         });
@@ -135,6 +137,7 @@ export async function POST(req: Request) {
         slackId: (session.user as any).slackId || "",
         verificationStatus: (session.user as any).verificationStatus || "false",
         tags: currentUser?.tags || [],
+        equippedTag: currentUser?.equippedTag || (currentUser?.tags && currentUser?.tags[0]),
       },
     });
 

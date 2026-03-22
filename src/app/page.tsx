@@ -16,6 +16,7 @@ interface Post {
     image?: string;
     slackId?: string;
     verificationStatus?: string;
+    equippedTag?: string;
     tags?: string[];
   };
   likes: string[];
