@@ -27,7 +27,7 @@ if (hackClubClientId && hackClubClientSecret) {
           redirectURI: (process.env.BETTER_AUTH_URL || "http://localhost:3000") + "/api/auth/oauth2/callback/hackclub",
           getUserInfo: async (token) => {
             console.log("Auth getUserInfo token:", token);
-            const res = await fetch("https://auth.hackclub.com/userinfo", {
+            const res = await fetch("https://auth.hackclub.com/oauth/userinfo", {
               headers: { 
                 Authorization: `Bearer ${token.accessToken}`,
                 Accept: "application/json"
@@ -63,7 +63,6 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "dev-secret",
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   advanced: {
-    trustProxy: true,
     trustHost: true
   },
   user: {
