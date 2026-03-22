@@ -4,7 +4,7 @@ import User from '../src/models/User';
 
 async function setPfp() {
   await dbConnect();
-  await User.updateOne({ slackId: 'orpheus' }, { $set: { image: '/images/talker.png' } });
+  await User.updateOne({ slackId: 'orpheus' }, { $set: { image: '/talker.png' } });
   console.log('Orpheus pfp set.');
   process.exit(0);
 }
