@@ -18,8 +18,9 @@ ENV HACKCLUB_CLIENT_ID=${HACKCLUB_CLIENT_ID}
 ENV HACKCLUB_CLIENT_SECRET=${HACKCLUB_CLIENT_SECRET}
 ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
-# Copy package files and install dependencies
+# Copy configuration files
 COPY package.json package-lock.json* tsconfig.json ./
+COPY next.config.ts postcss.config.mjs eslint.config.mjs ./
 COPY src ./src
 COPY public ./public
 
@@ -49,6 +50,7 @@ ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 # Copy built files and deps from builder stage
 COPY --from=builder /app/package.json .
+COPY --from=builder /app/next.config.ts .
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
