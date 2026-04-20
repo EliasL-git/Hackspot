@@ -1,3 +1,7 @@
+
+WIP.
+
+Fetures that arent working, Media upload's gifs, emojis. stats on posts
 # Hackspot
 
 Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and a command/mention feed.
