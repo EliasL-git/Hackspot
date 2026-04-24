@@ -222,6 +222,10 @@ function ProfilePageContent() {
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
             <span>Profile</span>
           </Link>
+          <Link href="/settings" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
+            <span className="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </Link>
         </nav>
       </aside>
 
@@ -249,7 +253,7 @@ function ProfilePageContent() {
             <div className="flex justify-between items-start">
               <div className="relative -mt-16 md:-mt-20">
                 <div className="p-1 bg-background rounded-full">
-                  <img src={gravatarUrl} alt={user.name} className="w-24 h-24 md:w-36 md:h-36 rounded-full border-4 border-background object-cover bg-surface-container" />
+                  <img src={user.image || gravatarUrl} alt={user.name} className="w-24 h-24 md:w-36 md:h-36 rounded-full border-4 border-background object-cover bg-surface-container" />
                 </div>
               </div>
               <div className="pt-4">
@@ -339,9 +343,9 @@ function ProfilePageContent() {
                              }
                            }}
                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                             isEquipped 
-                             ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
-                             : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
+                               isEquipped 
+                               ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
+                               : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
                            }`}
                            title={meta.desc}
                          >
@@ -375,4 +379,4 @@ function ProfilePageContent() {
   );
 }
 
-export default dynamic(() => Promise.resolve(ProfilePageContent), { ssr: false });
+export default dynamic(() => Promise.resolve(ProfilePageContent), { ss: false });
