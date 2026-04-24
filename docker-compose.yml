@@ -14,7 +14,7 @@ services:
     env_file:
       - .env
     ports:
-      - "4555:4555"
+      - "4555:3000"
     depends_on:
       - mongo
 
