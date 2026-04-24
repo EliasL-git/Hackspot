@@ -52,6 +52,8 @@ export async function POST(req: Request) {
             fileUrl = `https://${bucket}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
         }
 
+        console.log(`[Upload] Presigned URL generated. File will be available at: ${fileUrl}`);
+
         return NextResponse.json({ signedUrl, fileUrl });
     } catch (error) {
         console.error("Upload error:", error);

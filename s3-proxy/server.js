@@ -66,6 +66,8 @@ const server = http.createServer(async (req, res) => {
             'Cache-Control': 'public, max-age=31536000, immutable'
         });
 
+        console.log(`[Proxy] Successfully served: ${key}`);
+
         // Stream the S3 object directly to the client
         response.Body.pipe(res);
     } catch (error) {
@@ -75,7 +77,7 @@ const server = http.createServer(async (req, res) => {
             return res.end("Not found");
         }
         
-        console.error(`S3 GetObject error for key ${key}:`, error.name, error.message);
+        console.error(`[Proxy] S3 GetObject error for key ${key}:`, error.name, error.message);
         res.writeHead(error.$metadata?.httpStatusCode || 500);
         res.end("Internal Server Error or Access Denied");
     }
