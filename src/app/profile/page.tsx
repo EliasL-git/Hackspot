@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
-import { User, ShieldCheck, Mail, Slack, X } from "lucide-react";
+import { User, ShieldCheck, Mail, Slack, X, Github } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
@@ -14,7 +14,6 @@ function ProfilePageContent() {
   const [githubStats, setGithubStats] = useState<{ totalLines: number; loading: boolean }>({ totalLines: 0, loading: false });
   const [editName, setEditName] = useState("");
   const [editSlackId, setEditSlackId] = useState("");
-  const [editGithubUsername, setEditGithubUsername] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Set initial stats from session if available
@@ -27,16 +26,18 @@ function ProfilePageContent() {
     }
   }, [session?.user]);
 
-  // Add function to fetch GitHub stats
-  const fetchGithubStats = async (username: string) => {
+  const fetchGithubStats = async () => {
     setGithubStats(prev => ({ ...prev, loading: true }));
     try {
-      const res = await fetch(`/api/github/stats?username=${username}`);
+      const res = await fetch(`/api/github/stats`);
       const data = await res.json();
       if (data.totalLines) {
         setGithubStats({ totalLines: data.totalLines, loading: false });
       } else {
         setGithubStats(prev => ({ ...prev, loading: false }));
+        if (data.error === "GitHub account not linked") {
+          // They haven't linked their account yet
+        }
       }
     } catch (err) {
       console.error(err);
@@ -46,10 +47,7 @@ function ProfilePageContent() {
 
   useEffect(() => {
     if (session?.user) {
-      const u = session.user as any;
-      if (u.githubUsername) {
-        fetchGithubStats(u.githubUsername);
-      }
+      fetchGithubStats();
     }
   }, [session?.user]);
 
@@ -100,7 +98,6 @@ function ProfilePageContent() {
       await (authClient as any).updateUser({
         name: editName,
         slackId: editSlackId,
-        githubUsername: editGithubUsername,
       });
       setIsEditing(false);
       window.location.reload();
@@ -114,8 +111,14 @@ function ProfilePageContent() {
   const startEditing = () => {
     setEditName(user.name);
     setEditSlackId(user.slackId || "");
-    setEditGithubUsername(user.githubUsername || "");
     setIsEditing(true);
+  };
+
+  const handleLinkGithub = async () => {
+    await authClient.signIn.social({
+      provider: "github",
+      callbackURL: "/profile",
+    });
   };
 
   return (
@@ -165,20 +168,6 @@ function ProfilePageContent() {
                   />
                 </div>
                 <p className="text-xs text-on-surface-variant px-1 opacity-60">This is how people find you on Hackspot.</p>
-              </div>
-
-              <div className="space-y-2 group">
-                <label className="text-sm font-label text-primary font-bold uppercase tracking-wider px-1">GitHub Username</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-xl">/</span>
-                  <input 
-                    type="text" 
-                    value={editGithubUsername}
-                    onChange={(e) => setEditGithubUsername(e.target.value)}
-                    placeholder="github-user"
-                    className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-2xl p-4 pl-10 text-xl font-body focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                  />
-                </div>
               </div>
             </form>
           </div>
@@ -266,12 +255,23 @@ function ProfilePageContent() {
                     <span>Username: @{user.slackId}</span>
                   </div>
                 )}
-                {githubStats.totalLines > 0 && !githubStats.loading && (
+                
+                {/* GitHub Stats or Connect Button */}
+                {githubStats.totalLines > 0 && !githubStats.loading ? (
                   <div className="flex items-center gap-1 text-primary">
                     <span className="material-symbols-outlined text-sm">code</span>
                     <span>{githubStats.totalLines.toLocaleString()} Lines of Code</span>
                   </div>
+                ) : (
+                  <button 
+                    onClick={handleLinkGithub}
+                    className="flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Github className="w-4 h-4" />
+                    <span>Connect GitHub to show stats</span>
+                  </button>
                 )}
+                
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">calendar_month</span>
                   <span>Joined March 2026</span>
@@ -309,8 +309,8 @@ function ProfilePageContent() {
                            }}
                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                              isEquipped 
-                               ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
-                               : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
+                             ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
+                             : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
                            }`}
                            title={meta.desc}
                          >
