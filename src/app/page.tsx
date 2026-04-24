@@ -490,14 +490,17 @@ function HomePage() {
 
               {mediaFiles.length > 0 && (
                 <div className="flex gap-2 p-2 overflow-x-auto">
-                  {mediaFiles.map((m, i) => (
-                    <div key={i} className="relative w-20 h-20 flex-shrink-0">
-                      <img src={m.url} alt="upload preview" className="w-full h-full object-cover rounded-md" />
-                      <button type="button" onClick={() => setMediaFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1">
-                        <span className="material-symbols-outlined text-[14px]">close</span>
-                      </button>
-                    </div>
-                  ))}
+                  {mediaFiles.map((m, i) => {
+                    const src = m.url.startsWith('http') ? m.url : `https://${m.url}`;
+                    return (
+                      <div key={i} className="relative w-20 h-20 flex-shrink-0">
+                        <img src={src} alt="upload preview" className="w-full h-full object-cover rounded-md" />
+                        <button type="button" onClick={() => setMediaFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1">
+                          <span className="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -575,9 +578,10 @@ function HomePage() {
                 {/* Media */}
                 {post.media && post.media.length > 0 && (
                   <div className="mt-3 grid gap-2 grid-cols-2 mb-4">
-                    {post.media.map((m, i) => (
-                      <img key={i} src={m.url} alt="Post media" className="rounded-xl max-h-96 object-cover w-full" />
-                    ))}
+                    {post.media.map((m, i) => {
+                      const src = m.url.startsWith('http') ? m.url : `https://${m.url}`;
+                      return <img key={i} src={src} alt="Post media" className="rounded-xl max-h-96 object-cover w-full" />
+                    })}
                   </div>
                 )}
 
