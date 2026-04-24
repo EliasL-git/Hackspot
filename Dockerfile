@@ -1,60 +1,58 @@
-# Use official Node.js lts image
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Build-time args (for Next.js to generate proper runtime config)
-ARG MONGODB_URI
-ARG BETTER_AUTH_SECRET
-ARG BETTER_AUTH_URL
-ARG HACKCLUB_CLIENT_ID
-ARG HACKCLUB_CLIENT_SECRET
-ARG GITHUB_TOKEN
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
+RUN npm install
 
-ENV MONGODB_URI=${MONGODB_URI}
-ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-ENV BETTER_AUTH_URL=${BETTER_AUTH_URL}
-ENV HACKCLUB_CLIENT_ID=${HACKCLUB_CLIENT_ID}
-ENV HACKCLUB_CLIENT_SECRET=${HACKCLUB_CLIENT_SECRET}
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-# Copy configuration files
-COPY package.json package-lock.json* tsconfig.json ./
-COPY next.config.ts postcss.config.mjs eslint.config.mjs ./
-COPY src ./src
-COPY public ./public
+# Next.js collects completely anonymous telemetry data about general usage.
+# Learn more here: https://nextjs.org/telemetry
+# Uncomment the following line in case you want to disable telemetry during the build.
+# ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm ci
 RUN npm run build
 
-# Production image
-FROM node:20-alpine AS runner
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
+# Uncomment the following line in case you want to disable telemetry during runtime.
+# ENV NEXT_TELEMETRY_DISABLED=1
 
-ARG MONGODB_URI
-ARG BETTER_AUTH_SECRET
-ARG BETTER_AUTH_URL
-ARG HACKCLUB_CLIENT_ID
-ARG HACKCLUB_CLIENT_SECRET
-ARG GITHUB_TOKEN
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Re-propagate runtime env from build args when running container
-ENV MONGODB_URI=${MONGODB_URI}
-ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-ENV BETTER_AUTH_URL=${BETTER_AUTH_URL}
-ENV HACKCLUB_CLIENT_ID=${HACKCLUB_CLIENT_ID}
-ENV HACKCLUB_CLIENT_SECRET=${HACKCLUB_CLIENT_SECRET}
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
-
-# Copy built files and deps from builder stage
-COPY --from=builder /app/package.json .
-COPY --from=builder /app/next.config.ts .
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
-EXPOSE 4555
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
 
-CMD ["npx", "next", "start", "-p", "4555"]
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+# set hostname to localhost
+ENV HOSTNAME="0.0.0.0"
+
+# server.js is created by next build from the standalone output
+# https://nextjs.org/docs/pages/api-reference/next-config-js/output
+CMD ["node", "server.js"]

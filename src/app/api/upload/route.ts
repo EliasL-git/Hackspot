@@ -7,6 +7,8 @@ import crypto from "crypto";
 
 const s3 = new S3Client({
     region: process.env.AWS_REGION || "us-east-1",
+    endpoint: process.env.AWS_ENDPOINT_URL_S3 || undefined,
+    forcePathStyle: process.env.AWS_FORCE_PATH_STYLE === "true",
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
@@ -20,15 +22,35 @@ export async function POST(req: Request) {
     try {
         const { filename, contentType } = await req.json();
         const key = `uploads/${session.user.id}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const bucket = process.env.AWS_S3_BUCKET_NAME || "hackspot-uploads";
 
         const command = new PutObjectCommand({
-            Bucket: process.env.AWS_S3_BUCKET_NAME || "hackspot-uploads",
+            Bucket: bucket,
             Key: key,
             ContentType: contentType,
         });
 
         const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
-        const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME || "hackspot-uploads"}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
+        
+        // Construct the public URL
+        let fileUrl;
+        if (process.env.AWS_S3_PUBLIC_URL && process.env.AWS_S3_PUBLIC_URL.trim() !== "") {
+            // Explicit public URL (e.g., CDN or custom endpoint like https://storageperk.s3.fra.databucket.eu)
+            const publicUrl = process.env.AWS_S3_PUBLIC_URL.replace(/\\/$/, '');
+            fileUrl = `${publicUrl}/${key}`;
+        } else if (process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ENDPOINT_URL_S3.trim() !== "") {
+            // For custom endpoints (like MinIO, R2, etc.)
+            const endpoint = process.env.AWS_ENDPOINT_URL_S3.replace(/\\/$/, '');
+            if (process.env.AWS_FORCE_PATH_STYLE === "true") {
+                fileUrl = `${endpoint}/${bucket}/${key}`;
+            } else {
+                const urlObj = new URL(endpoint);
+                fileUrl = `${urlObj.protocol}//${bucket}.${urlObj.host}/${key}`;
+            }
+        } else {
+            // Default AWS S3 URL
+            fileUrl = `https://${bucket}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
+        }
 
         return NextResponse.json({ signedUrl, fileUrl });
     } catch (error) {
