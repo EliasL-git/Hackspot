@@ -138,10 +138,19 @@ function ProfilePageContent() {
   };
 
   const linkGithub = async () => {
-    await authClient.signIn.oauth2({
-      providerId: "github",
-      callbackURL: "/profile",
-    });
+    try {
+      await authClient.linkSocial({
+        provider: "github",
+        callbackURL: "/profile",
+      });
+    } catch (error) {
+      console.error("Failed to link GitHub:", error);
+      // Fallback to standard social sign-in if linkSocial is not available in this version
+      await authClient.signIn.social({
+        provider: "github",
+        callbackURL: "/profile",
+      });
+    }
   };
 
   return (
