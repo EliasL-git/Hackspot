@@ -46,10 +46,10 @@ function ProfilePageContent() {
     }
   }, [session?.user]);
 
-  const fetchGithubStats = async () => {
+  const fetchGithubStats = async (username: string) => {
     setGithubStats(prev => ({ ...prev, loading: true }));
     try {
-      const res = await fetch(`/api/github/stats`);
+      const res = await fetch(`/api/github/stats?username=${username}`);
       const data = await res.json();
       if (data.totalLines) {
         setGithubStats({ totalLines: data.totalLines, loading: false });
@@ -279,6 +279,7 @@ function ProfilePageContent() {
                   </div>
                 )}
                 
+                {/* GitHub Stats or Connect Button */}
                 {isGithubLinked ? (
                   githubStats.totalLines > 0 && !githubStats.loading && (
                     <div className="flex items-center gap-1 text-primary">
