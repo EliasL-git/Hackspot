@@ -7,12 +7,25 @@ import dynamic from "next/dynamic";
 import { UserTag } from "@/components/UserTag";
 
 function formatBytes(bytes: number, decimals = 2) {
-  if (!+bytes) return '0 Bytes';
+  if (!+bytes) return '0 KB';
+  
+  // If bytes is less than 1KB, force it to show as a fraction of KB
+  if (bytes < 1024) {
+    return `${(bytes / 1024).toFixed(decimals)} KB`;
+  }
+  
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  // Start from KB instead of Bytes
+  const sizes = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  
+  // Adjust the index calculation to account for starting at KB
+  const i = Math.floor(Math.log(bytes) / Math.log(k)) - 1;
+  
+  // If calculation goes out of bounds (e.g. negative), fallback to KB
+  if (i < 0) return `${(bytes / 1024).toFixed(dm)} KB`;
+  
+  return `${parseFloat((bytes / Math.pow(k, i + 1)).toFixed(dm))} ${sizes[i]}`;
 }
 
 function AdminPage() {
@@ -20,7 +33,7 @@ function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [stats, setStats] = useState({ users: 0, posts: 0, storageBytes: 0 });
+  const [stats, setStats] = useState({ users: 0, posts: 0, reportedPosts: 0, storageBytes: 0 });
   
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminPosts, setAdminPosts] = useState<any[]>([]);
@@ -159,7 +172,7 @@ function AdminPage() {
       case 'dashboard':
         return (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
                 <div className="flex items-center gap-3 text-on-surface-variant mb-2">
                   <span className="material-symbols-outlined">group</span>
@@ -173,6 +186,13 @@ function AdminPage() {
                   <h3 className="font-bold">Total Posts</h3>
                 </div>
                 <div className="text-4xl font-black">{stats.posts}</div>
+              </div>
+              <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
+                <div className="flex items-center gap-3 text-error mb-2">
+                  <span className="material-symbols-outlined">report</span>
+                  <h3 className="font-bold">Reported Posts</h3>
+                </div>
+                <div className="text-4xl font-black text-error">{stats.reportedPosts || 0}</div>
               </div>
               <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
                 <div className="flex items-center gap-3 text-on-surface-variant mb-2">
@@ -268,19 +288,29 @@ function AdminPage() {
                   <tr className="bg-surface-container-low text-on-surface-variant text-sm uppercase tracking-wider">
                     <th className="p-4 font-bold">Author</th>
                     <th className="p-4 font-bold">Content Excerpt</th>
+                    <th className="p-4 font-bold text-center">Reports</th>
                     <th className="p-4 font-bold">Date</th>
                     <th className="p-4 font-bold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {adminPosts.map(p => (
-                    <tr key={p._id} className="hover:bg-surface-container-high/50 transition-colors">
+                  {adminPosts.sort((a, b) => (b.reports?.length || 0) - (a.reports?.length || 0)).map(p => (
+                    <tr key={p._id} className={`transition-colors ${p.reports?.length > 0 ? 'bg-error/5 hover:bg-error/10' : 'hover:bg-surface-container-high/50'}`}>
                       <td className="p-4">
                         <div className="font-bold">{p.author?.name || 'Unknown'}</div>
                         <div className="text-xs text-on-surface-variant">@{p.author?.slackId || 'unknown'}</div>
                       </td>
                       <td className="p-4 text-sm max-w-md truncate">
                         {p.content || <span className="italic text-on-surface-variant">[Media only]</span>}
+                      </td>
+                      <td className="p-4 text-center">
+                        {p.reports?.length > 0 ? (
+                          <span className="inline-flex items-center justify-center bg-error text-white text-xs font-bold px-2 py-1 rounded-full">
+                            {p.reports.length}
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant/40">-</span>
+                        )}
                       </td>
                       <td className="p-4 text-sm text-on-surface-variant">
                         {new Date(p.createdAt).toLocaleDateString()}
@@ -338,6 +368,9 @@ function AdminPage() {
           >
             <span className="material-symbols-outlined">article</span>
             Posts
+            {stats.reportedPosts > 0 && (
+              <span className="ml-auto bg-error text-white text-xs px-2 py-0.5 rounded-full">{stats.reportedPosts}</span>
+            )}
           </button>
           <button 
             onClick={() => setActiveTab('settings')}

@@ -29,6 +29,7 @@ interface Post {
   };
   likes: string[];
   reposts: string[];
+  reports?: string[];
   createdAt: string;
 }
 
@@ -142,6 +143,35 @@ function HomePage() {
     } catch (error) {
       console.error(error);
       alert("An unexpected error occurred while liking.");
+    }
+  };
+
+  const handleReport = async (postId: string) => {
+    if (!session) {
+      alert("You must be logged in to report posts!");
+      return;
+    }
+    if (!confirm("Are you sure you want to report this post to the admins?")) return;
+    
+    try {
+      const res = await fetch(`/api/posts/${postId}/report`, { method: "POST" });
+      if (res.ok) {
+        alert("Post reported successfully. Thank you for keeping Hackspot safe.");
+        // Optimistically update
+        setPosts(prev => prev.map(p => {
+          if (p._id === postId) {
+            return {
+              ...p,
+              reports: [...(p.reports || []), session.user.id]
+            };
+          }
+          return p;
+        }));
+      } else {
+        alert("Failed to report post.");
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -412,6 +442,16 @@ function HomePage() {
                   <span className="material-symbols-outlined">person</span>
                   <span>Profile</span>
                 </Link>
+                {/* Admin Link if user has admin/owner tag */}
+                {(session.user as any)?.tags?.some((t: string) => ['admin', 'owner'].includes(t)) && (
+                  <Link
+                    className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg active:scale-[0.98]"
+                    href="/admin"
+                  >
+                    <span className="material-symbols-outlined">admin_panel_settings</span>
+                    <span>Admin</span>
+                  </Link>
+                )}
                 <button
                   onClick={handleSignOut}
                   className="w-full text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-error/10 hover:text-error transition-all font-headline font-medium text-lg active:scale-[0.98]"
@@ -564,14 +604,28 @@ function HomePage() {
                   )}
                   <span className="text-on-surface-variant/40 font-body text-sm">· {new Date(post.createdAt).toLocaleDateString()}</span>
                   <div className="flex-1"></div>
-                  {session?.user.id === post.author.id && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDelete(post._id); }}
-                      className="text-on-surface-variant/40 hover:text-error transition-colors p-2 hover:bg-error/10 rounded-full"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">delete</span>
-                    </button>
-                  )}
+                  
+                  {/* Post Actions Dropdown / Icons */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {session?.user.id !== post.author.id && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleReport(post._id); }}
+                        className="text-on-surface-variant/40 hover:text-warning transition-colors p-2 hover:bg-warning/10 rounded-full"
+                        title="Report Post"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">flag</span>
+                      </button>
+                    )}
+                    {session?.user.id === post.author.id && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(post._id); }}
+                        className="text-on-surface-variant/40 hover:text-error transition-colors p-2 hover:bg-error/10 rounded-full"
+                        title="Delete Post"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content, post.author)}</div>
                 

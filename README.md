@@ -14,10 +14,10 @@ Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and
 - Notifications at `/notifications`
 - Post detail view at `/post/[id]`
 - Media & GIF Uploads (via AWS S3 or compatible providers)
-- Built-in S3 Proxy for serving private buckets
 - OpenGraph Link Previews
 - Cursor-based Pagination
 - Admin Dashboard & Moderation
+- GitHub Stats Integration via OAuth
 
 ## Local Development
 
@@ -37,6 +37,10 @@ GITHUB_CLIENT_ID=<github-client-id>
 GITHUB_CLIENT_SECRET=<github-client-secret>
 BETTER_AUTH_SECRET=<secret>
 BETTER_AUTH_URL=http://localhost:3000
+
+# GitHub OAuth App (for fetching stats)
+GITHUB_CLIENT_ID=<github-client-id>
+GITHUB_CLIENT_SECRET=<github-client-secret>
 
 # S3 Compatible Storage for Media Uploads
 AWS_REGION=us-east-1
@@ -60,10 +64,11 @@ npm run dev
 
 ## Docker
 
-Build and run the stack (Main app on 4555, S3 Proxy on 4556):
+Build and run container (app listens on 4555 in container):
 
 ```bash
-docker compose up -d --build
+docker build -t hackspot .
+docker run -p 4555:3000 hackspot
 ```
 
 ## Promoting an Admin

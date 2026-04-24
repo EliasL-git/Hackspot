@@ -15,6 +15,7 @@ function ProfilePageContent() {
   const [editName, setEditName] = useState("");
   const [editSlackId, setEditSlackId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isGithubLinked, setIsGithubLinked] = useState(false);
 
   // Set initial stats from session if available
   useEffect(() => {
@@ -23,6 +24,25 @@ function ProfilePageContent() {
       if (u.githubStats?.totalLines) {
         setGithubStats({ totalLines: u.githubStats.totalLines, loading: false });
       }
+      
+      // Check if GitHub is linked
+      const checkGithub = async () => {
+        try {
+          const res = await fetch('/api/auth/list-accounts');
+          if (res.ok) {
+            const accounts = await res.json();
+            setIsGithubLinked(accounts.some((acc: any) => acc.providerId === 'github'));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      // Better Auth client exposes linked accounts
+      authClient.listAccounts().then(({ data }) => {
+        if (data) {
+          setIsGithubLinked(data.some(acc => acc.providerId === 'github'));
+        }
+      });
     }
   }, [session?.user]);
 
@@ -47,9 +67,12 @@ function ProfilePageContent() {
 
   useEffect(() => {
     if (session?.user) {
-      fetchGithubStats();
+      const u = session.user as any;
+      if (u.githubUsername && isGithubLinked) {
+        fetchGithubStats(u.githubUsername);
+      }
     }
-  }, [session?.user]);
+  }, [session?.user, isGithubLinked]);
 
   if (isPending) {
     return (
@@ -114,9 +137,9 @@ function ProfilePageContent() {
     setIsEditing(true);
   };
 
-  const handleLinkGithub = async () => {
-    await authClient.signIn.social({
-      provider: "github",
+  const linkGithub = async () => {
+    await authClient.signIn.oauth2({
+      providerId: "github",
       callbackURL: "/profile",
     });
   };
@@ -256,19 +279,17 @@ function ProfilePageContent() {
                   </div>
                 )}
                 
-                {/* GitHub Stats or Connect Button */}
-                {githubStats.totalLines > 0 && !githubStats.loading ? (
-                  <div className="flex items-center gap-1 text-primary">
-                    <span className="material-symbols-outlined text-sm">code</span>
-                    <span>{githubStats.totalLines.toLocaleString()} Lines of Code</span>
-                  </div>
+                {isGithubLinked ? (
+                  githubStats.totalLines > 0 && !githubStats.loading && (
+                    <div className="flex items-center gap-1 text-primary">
+                      <span className="material-symbols-outlined text-sm">code</span>
+                      <span>{githubStats.totalLines.toLocaleString()} Lines of Code</span>
+                    </div>
+                  )
                 ) : (
-                  <button 
-                    onClick={handleLinkGithub}
-                    className="flex items-center gap-1 text-primary hover:underline"
-                  >
+                  <button onClick={linkGithub} className="flex items-center gap-1 text-primary hover:underline font-bold">
                     <Github className="w-4 h-4" />
-                    <span>Connect GitHub to show stats</span>
+                    <span>Connect GitHub for stats</span>
                   </button>
                 )}
                 
