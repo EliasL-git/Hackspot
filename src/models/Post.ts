@@ -13,7 +13,9 @@ export interface IPost extends Document {
   hashtags: string[];
   likes: string[];
   reposts: string[];
-  reports: string[]; // Array of user IDs who reported this post
+  reports: string[];
+  views: string[]; // Array of user IDs who viewed this post
+  viewCount: number; // Total views (including anonymous)
   isRepost: boolean;
   originalPost?: mongoose.Types.ObjectId;
   media?: { url: string; type: string }[];
@@ -40,6 +42,8 @@ const PostSchema: Schema = new Schema({
   likes: [{ type: String, default: [] }],
   reposts: [{ type: String, default: [] }],
   reports: [{ type: String, default: [] }],
+  views: [{ type: String, default: [] }],
+  viewCount: { type: Number, default: 0 },
   isRepost: { type: Boolean, default: false },
   originalPost: { type: Schema.Types.ObjectId, ref: 'Post' },
   media: [{
