@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const enrichedPosts = await Promise.all(posts.map(async (post: any) => {
       let user = null;
       try {
-        user = await User.findOne({ id: post.author.id });
+        user = await User.findOne({ id: post.author.id }).lean();
       } catch (e) {}
       
       const email = user?.email || "hack@club.com";
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const currentUser = await User.findOne({ id: session.user.id });
+    const currentUser = await User.findOne({ id: session.user.id }).lean() as any;
 
     const post = await Post.create({
       content: content || "",
