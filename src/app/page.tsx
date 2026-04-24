@@ -352,6 +352,7 @@ function HomePage() {
 
   const renderContent = (content: string, author: any) => {
     if (!content) return null;
+    // Split by spaces but preserve them
     return content.split(/(\s+)/).map((part, i) => {
       // Hashtags
       if (part.startsWith("#")) {
