@@ -1,0 +1,12 @@
+{
+  "name": "s3-proxy",
+  "version": "1.0.0",
+  "description": "A lightweight Node.js proxy to serve private S3 objects publicly",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0"
+  }
+}
