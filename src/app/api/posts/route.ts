@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     if (content && content.trim() === "$help") {
       const orpheus = await User.findOne({ slackId: 'orpheus' });
       if (orpheus) {
-        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\\s+/g, '').toLowerCase()}, I'm Orpheus! 🦖 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
+        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦖 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
 
         const welcomePost = await Post.create({
           content: welcomeContent,
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
           createdAt: new Date()
         });
 
-        const helpMentions = welcomeContent.match(/@([\\w\\d]+)/g);
+        const helpMentions = welcomeContent.match(/@([\w\d]+)/g);
         if (helpMentions) {
           const uniqueHandles = Array.from(new Set(helpMentions.map((m: string) => m.slice(1).toLowerCase())));
           const mentionedUsers = await User.find({ slackId: { $in: uniqueHandles } });
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
 
     let ogData = null;
     if (content) {
-      const urlMatch = content.match(/(?:https?:\\/\\/)[^\\s]+/i);
+      const urlMatch = content.match(/(?:https?:\/\/)[^\s]+/i);
       if (urlMatch) {
         try {
           const { result } = await ogs({ url: urlMatch[0] });
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
     });
 
     if (content) {
-      const mentions = content.match(/@([\\w\\d]+)/g);
+      const mentions = content.match(/@([\w\d]+)/g);
       if (mentions) {
         const uniqueHandles = Array.from(new Set(mentions.map((m: string) => m.slice(1).toLowerCase())));
         const mentionedUsers = await User.find({ 
