@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
-import { User, ShieldCheck, Mail, Slack, X } from "lucide-react";
+import { User, ShieldCheck, Mail, Slack, X, Github } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
@@ -16,6 +16,7 @@ function ProfilePageContent() {
   const [editSlackId, setEditSlackId] = useState("");
   const [editGithubUsername, setEditGithubUsername] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isGithubLinked, setIsGithubLinked] = useState(false);
 
   // Set initial stats from session if available
   useEffect(() => {
@@ -24,6 +25,25 @@ function ProfilePageContent() {
       if (u.githubStats?.totalLines) {
         setGithubStats({ totalLines: u.githubStats.totalLines, loading: false });
       }
+      
+      // Check if GitHub is linked
+      const checkGithub = async () => {
+        try {
+          const res = await fetch('/api/auth/list-accounts');
+          if (res.ok) {
+            const accounts = await res.json();
+            setIsGithubLinked(accounts.some((acc: any) => acc.providerId === 'github'));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      // Better Auth client exposes linked accounts
+      authClient.listAccounts().then(({ data }) => {
+        if (data) {
+          setIsGithubLinked(data.some(acc => acc.providerId === 'github'));
+        }
+      });
     }
   }, [session?.user]);
 
@@ -47,11 +67,11 @@ function ProfilePageContent() {
   useEffect(() => {
     if (session?.user) {
       const u = session.user as any;
-      if (u.githubUsername) {
+      if (u.githubUsername && isGithubLinked) {
         fetchGithubStats(u.githubUsername);
       }
     }
-  }, [session?.user]);
+  }, [session?.user, isGithubLinked]);
 
   if (isPending) {
     return (
@@ -116,6 +136,13 @@ function ProfilePageContent() {
     setEditSlackId(user.slackId || "");
     setEditGithubUsername(user.githubUsername || "");
     setIsEditing(true);
+  };
+
+  const linkGithub = async () => {
+    await authClient.signIn.oauth2({
+      providerId: "github",
+      callbackURL: "/profile",
+    });
   };
 
   return (
@@ -266,12 +293,21 @@ function ProfilePageContent() {
                     <span>Username: @{user.slackId}</span>
                   </div>
                 )}
-                {githubStats.totalLines > 0 && !githubStats.loading && (
-                  <div className="flex items-center gap-1 text-primary">
-                    <span className="material-symbols-outlined text-sm">code</span>
-                    <span>{githubStats.totalLines.toLocaleString()} Lines of Code</span>
-                  </div>
+                
+                {isGithubLinked ? (
+                  githubStats.totalLines > 0 && !githubStats.loading && (
+                    <div className="flex items-center gap-1 text-primary">
+                      <span className="material-symbols-outlined text-sm">code</span>
+                      <span>{githubStats.totalLines.toLocaleString()} Lines of Code</span>
+                    </div>
+                  )
+                ) : (
+                  <button onClick={linkGithub} className="flex items-center gap-1 text-primary hover:underline font-bold">
+                    <Github className="w-4 h-4" />
+                    <span>Connect GitHub for stats</span>
+                  </button>
                 )}
+                
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">calendar_month</span>
                   <span>Joined March 2026</span>
@@ -309,8 +345,8 @@ function ProfilePageContent() {
                            }}
                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                              isEquipped 
-                               ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
-                               : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
+                             ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
+                             : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
                            }`}
                            title={meta.desc}
                          >
