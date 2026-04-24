@@ -15,11 +15,18 @@ export interface IPost extends Document {
   reposts: string[];
   isRepost: boolean;
   originalPost?: mongoose.Types.ObjectId;
+  media?: { url: string; type: string }[];
+  ogData?: {
+    title?: string;
+    description?: string;
+    image?: string;
+    url?: string;
+  };
   createdAt: Date;
 }
 
 const PostSchema: Schema = new Schema({
-  content: { type: String, required: true },
+  content: { type: String, required: false },
   author: {
     id: String,
     name: { type: String, required: true },
@@ -33,6 +40,16 @@ const PostSchema: Schema = new Schema({
   reposts: [{ type: String, default: [] }],
   isRepost: { type: Boolean, default: false },
   originalPost: { type: Schema.Types.ObjectId, ref: 'Post' },
+  media: [{
+    url: String,
+    type: { type: String, enum: ['image', 'gif', 'video'] }
+  }],
+  ogData: {
+    title: String,
+    description: String,
+    image: String,
+    url: String
+  },
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'posts' });
 
