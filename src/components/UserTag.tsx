@@ -13,11 +13,17 @@ export const TAG_METADATA: Record<string, { icon: string, label: string, color: 
     color: 'bg-yellow-900 text-yellow-300 border-yellow-400', 
     desc: 'This user is the owner of Hackspot.' 
   },
+  admin: { 
+    icon: 'admin_panel_settings', 
+    label: 'Admin', 
+    color: 'bg-red-900 text-red-300 border-red-400', 
+    desc: 'This user is a Hackspot administrator.' 
+  },
   hackclubstaff: { 
     icon: 'badge', 
     label: 'Staff', 
     color: 'bg-red-900 text-red-300 border-red-400', 
-    desc: 'This user is a member of the Hack Club staff team. They do not have any control over Hackspot.' 
+    desc: 'This user is a member of the Hack Club staff. They do not have any control over Hackspot.' 
   },
   contributor: { 
     icon: 'terminal', 
