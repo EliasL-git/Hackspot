@@ -13,6 +13,7 @@ Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and
 - Notifications at `/notifications`
 - Post detail view at `/post/[id]`
 - Media & GIF Uploads (via AWS S3 or compatible providers)
+- Built-in S3 Proxy for serving private buckets
 - OpenGraph Link Previews
 - Cursor-based Pagination
 - Admin Dashboard & Moderation
@@ -43,8 +44,9 @@ AWS_S3_BUCKET_NAME=hackspot-uploads
 # Optional: For custom S3 providers (Cloudflare R2, MinIO, etc.)
 AWS_ENDPOINT_URL_S3=https://your-custom-endpoint.com
 AWS_FORCE_PATH_STYLE=false
-# Optional: Explicit public URL for serving files (e.g., CDN or custom domain)
-AWS_S3_PUBLIC_URL=https://storageperk.s3.fra.databucket.eu/hackspot-uploads
+
+# To use the built-in S3 Proxy container for serving private images publicly:
+AWS_S3_PUBLIC_URL=http://localhost:4556
 ```
 
 3) Start dev server:
@@ -57,11 +59,10 @@ npm run dev
 
 ## Docker
 
-Build and run container (app listens on 4555 in container):
+Build and run the stack (Main app on 4555, S3 Proxy on 4556):
 
 ```bash
-docker build -t hackspot .
-docker run -p 4555:3000 hackspot
+docker compose up -d --build
 ```
 
 ## Promoting an Admin

@@ -22,3 +22,14 @@ services:
       - .env
     ports:
       - "4555:3000"
+    depends_on:
+      - s3-proxy
+
+  s3-proxy:
+    build:
+      context: ./s3-proxy
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "4556:4556"
