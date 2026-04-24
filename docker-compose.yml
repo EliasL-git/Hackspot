@@ -10,7 +10,8 @@ services:
         BETTER_AUTH_URL: ${BETTER_AUTH_URL}
         HACKCLUB_CLIENT_ID: ${HACKCLUB_CLIENT_ID}
         HACKCLUB_CLIENT_SECRET: ${HACKCLUB_CLIENT_SECRET}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
+        GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+        GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
         AWS_REGION: ${AWS_REGION}
         AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
         AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -22,14 +23,3 @@ services:
       - .env
     ports:
       - "4555:3000"
-    depends_on:
-      - s3-proxy
-
-  s3-proxy:
-    build:
-      context: ./s3-proxy
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "4556:4556"

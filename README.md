@@ -13,10 +13,10 @@ Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and
 - Notifications at `/notifications`
 - Post detail view at `/post/[id]`
 - Media & GIF Uploads (via AWS S3 or compatible providers)
-- Built-in S3 Proxy for serving private buckets
 - OpenGraph Link Previews
 - Cursor-based Pagination
 - Admin Dashboard & Moderation
+- GitHub Stats Integration via OAuth
 
 ## Local Development
 
@@ -34,7 +34,10 @@ HACKCLUB_CLIENT_ID=<client-id>
 HACKCLUB_CLIENT_SECRET=<client-secret>
 BETTER_AUTH_SECRET=<secret>
 BETTER_AUTH_URL=http://localhost:3000
-GITHUB_TOKEN=<github-token>
+
+# GitHub OAuth App (for fetching stats)
+GITHUB_CLIENT_ID=<github-client-id>
+GITHUB_CLIENT_SECRET=<github-client-secret>
 
 # S3 Compatible Storage for Media Uploads
 AWS_REGION=us-east-1
@@ -44,10 +47,8 @@ AWS_S3_BUCKET_NAME=hackspot-uploads
 # Optional: For custom S3 providers (Cloudflare R2, MinIO, etc.)
 AWS_ENDPOINT_URL_S3=https://your-custom-endpoint.com
 AWS_FORCE_PATH_STYLE=false
-
-# To use the built-in S3 Proxy container for serving private images publicly:
-# Set this to the public URL where your proxy is accessible (e.g., your CDN domain)
-AWS_S3_PUBLIC_URL=https://cdn.hackspot.el4s.dev
+# Optional: Explicit public URL for serving files (e.g., CDN or custom domain)
+AWS_S3_PUBLIC_URL=https://storageperk.s3.fra.databucket.eu/hackspot-uploads
 ```
 
 3) Start dev server:
@@ -60,10 +61,11 @@ npm run dev
 
 ## Docker
 
-Build and run the stack (Main app on 4555, S3 Proxy on 4556):
+Build and run container (app listens on 4555 in container):
 
 ```bash
-docker compose up -d --build
+docker build -t hackspot .
+docker run -p 4555:3000 hackspot
 ```
 
 ## Promoting an Admin

@@ -21,6 +21,9 @@ export async function GET(req: Request) {
   try {
     const userCount = await User.countDocuments();
     const postCount = await Post.countDocuments();
+    
+    // Count posts that have at least one report
+    const reportedPostsCount = await Post.countDocuments({ "reports.0": { $exists: true } });
 
     let totalStorageBytes = 0;
     try {
@@ -60,6 +63,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       users: userCount,
       posts: postCount,
+      reportedPosts: reportedPostsCount,
       storageBytes: totalStorageBytes
     });
   } catch (error) {

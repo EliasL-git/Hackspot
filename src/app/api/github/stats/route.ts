@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth";
 import { Octokit } from "octokit";
 import User from "@/models/User";
 import dbConnect from "@/lib/db";
+import { MongoClient } from "mongodb";
 
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN
-});
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/hackspost";
+const client = new MongoClient(MONGODB_URI);
+const db = client.db("hackspost");
 
 export async function GET(req: Request) {
   let session = null;
@@ -44,7 +45,6 @@ export async function GET(req: Request) {
     }
 
     // If stats are older than 4 hours, CLEAR the current stats from the DB
-    // to "delete old data" and start fresh.
     if (user && user.githubStats) {
       console.log(`Clearing stale stats for ${username}...`);
       user.githubStats = {
@@ -55,6 +55,20 @@ export async function GET(req: Request) {
     }
 
     console.log(`Lazy fetching GitHub stats for ${username}...`);
+
+    // Fetch the user's GitHub OAuth token from the database
+    const account = await db.collection("account").findOne({ 
+      userId: session.user.id, 
+      providerId: "github" 
+    });
+
+    if (!account || !account.accessToken) {
+      return NextResponse.json({ error: "GitHub account not linked. Please connect your GitHub account." }, { status: 403 });
+    }
+
+    const octokit = new Octokit({
+      auth: account.accessToken
+    });
 
     // Fetch from GitHub
     // This is a simplified approach: getting stats from all public repos
@@ -95,7 +109,7 @@ export async function GET(req: Request) {
             );
             
             if (userStats && userStats.weeks) {
-              const repoAdditions = userStats.weeks.reduce((acc, week) => acc + (week.a || 0), 0);
+              const repoAdditions = userStats.weeks.reduce((acc: any, week: any) => acc + (week.a || 0), 0);
               if (repoAdditions > 0) {
                 repoLog.push(`${repo.name}: +${repoAdditions}`);
                 return repoAdditions;

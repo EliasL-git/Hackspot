@@ -13,6 +13,7 @@ export interface IPost extends Document {
   hashtags: string[];
   likes: string[];
   reposts: string[];
+  reports: string[]; // Array of user IDs who reported this post
   isRepost: boolean;
   originalPost?: mongoose.Types.ObjectId;
   media?: { url: string; type: string }[];
@@ -38,6 +39,7 @@ const PostSchema: Schema = new Schema({
   hashtags: [{ type: String }],
   likes: [{ type: String, default: [] }],
   reposts: [{ type: String, default: [] }],
+  reports: [{ type: String, default: [] }],
   isRepost: { type: Boolean, default: false },
   originalPost: { type: Schema.Types.ObjectId, ref: 'Post' },
   media: [{

@@ -62,6 +62,12 @@ export const auth = betterAuth({
   database: mongodbAdapter(db),
   secret: process.env.BETTER_AUTH_SECRET || "dev-secret",
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+    }
+  },
   user: {
     additionalFields: {
       slackId: {
