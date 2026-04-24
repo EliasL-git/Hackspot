@@ -14,7 +14,6 @@ function ProfilePageContent() {
   const [githubStats, setGithubStats] = useState<{ totalLines: number; loading: boolean }>({ totalLines: 0, loading: false });
   const [editName, setEditName] = useState("");
   const [editSlackId, setEditSlackId] = useState("");
-  const [editGithubUsername, setEditGithubUsername] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isGithubLinked, setIsGithubLinked] = useState(false);
 
@@ -47,16 +46,18 @@ function ProfilePageContent() {
     }
   }, [session?.user]);
 
-  // Add function to fetch GitHub stats
-  const fetchGithubStats = async (username: string) => {
+  const fetchGithubStats = async () => {
     setGithubStats(prev => ({ ...prev, loading: true }));
     try {
-      const res = await fetch(`/api/github/stats?username=${username}`);
+      const res = await fetch(`/api/github/stats`);
       const data = await res.json();
       if (data.totalLines) {
         setGithubStats({ totalLines: data.totalLines, loading: false });
       } else {
         setGithubStats(prev => ({ ...prev, loading: false }));
+        if (data.error === "GitHub account not linked") {
+          // They haven't linked their account yet
+        }
       }
     } catch (err) {
       console.error(err);
@@ -120,7 +121,6 @@ function ProfilePageContent() {
       await (authClient as any).updateUser({
         name: editName,
         slackId: editSlackId,
-        githubUsername: editGithubUsername,
       });
       setIsEditing(false);
       window.location.reload();
@@ -134,7 +134,6 @@ function ProfilePageContent() {
   const startEditing = () => {
     setEditName(user.name);
     setEditSlackId(user.slackId || "");
-    setEditGithubUsername(user.githubUsername || "");
     setIsEditing(true);
   };
 
@@ -192,20 +191,6 @@ function ProfilePageContent() {
                   />
                 </div>
                 <p className="text-xs text-on-surface-variant px-1 opacity-60">This is how people find you on Hackspot.</p>
-              </div>
-
-              <div className="space-y-2 group">
-                <label className="text-sm font-label text-primary font-bold uppercase tracking-wider px-1">GitHub Username</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-xl">/</span>
-                  <input 
-                    type="text" 
-                    value={editGithubUsername}
-                    onChange={(e) => setEditGithubUsername(e.target.value)}
-                    placeholder="github-user"
-                    className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-2xl p-4 pl-10 text-xl font-body focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                  />
-                </div>
               </div>
             </form>
           </div>

@@ -5,6 +5,7 @@ Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and
 ## Features
 
 - Hack Club OAuth via `better-auth`
+- GitHub OAuth for syncing lines of code
 - @mentions (`@username`) with profile links
 - #hashtags for trending discovery
 - $commands: `$lines`, `$repo`, `$help`, `$github`
@@ -32,6 +33,8 @@ npm ci
 MONGODB_URI=mongodb://mongo:password@host:port
 HACKCLUB_CLIENT_ID=<client-id>
 HACKCLUB_CLIENT_SECRET=<client-secret>
+GITHUB_CLIENT_ID=<github-client-id>
+GITHUB_CLIENT_SECRET=<github-client-secret>
 BETTER_AUTH_SECRET=<secret>
 BETTER_AUTH_URL=http://localhost:3000
 
