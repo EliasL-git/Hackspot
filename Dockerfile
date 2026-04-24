@@ -68,8 +68,13 @@ RUN npm install -g tsx
 COPY --from=builder /app/public ./public
 # Copy scripts and config needed for CLI tools
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/src/lib ./src/lib
+COPY --from=builder /app/src/models ./src/models
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/package.json ./
+
+# Install production dependencies so scripts have access to dotenv, mongoose, etc.
+RUN npm install --omit=dev
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
