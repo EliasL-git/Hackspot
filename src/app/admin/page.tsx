@@ -5,15 +5,24 @@ import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
 function AdminPage() {
   const { data: session, isPending } = authClient.useSession();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [stats, setStats] = useState({ users: 0, posts: 0, storageBytes: 0 });
 
   useEffect(() => {
     if (session?.user) {
-      // Check if user has the admin tag
       const checkAdmin = async () => {
         try {
           const res = await fetch(`/api/users/profile/${(session.user as any).slackId || session.user.name}`);
@@ -21,7 +30,7 @@ function AdminPage() {
             const data = await res.json();
             if (data.user?.tags?.includes('admin') || data.user?.tags?.includes('owner')) {
               setIsAdmin(true);
-              fetchUsers();
+              fetchStats();
             } else {
               setLoading(false);
             }
@@ -38,10 +47,18 @@ function AdminPage() {
     }
   }, [session, isPending]);
 
-  const fetchUsers = async () => {
-    // In a real app, you'd have a dedicated /api/admin/users route
-    // For now, we'll just show a placeholder dashboard
-    setLoading(false);
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/admin/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isPending || loading) {
@@ -67,28 +84,112 @@ function AdminPage() {
     );
   }
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
+                <div className="flex items-center gap-3 text-on-surface-variant mb-2">
+                  <span className="material-symbols-outlined">group</span>
+                  <h3 className="font-bold">Total Users</h3>
+                </div>
+                <div className="text-4xl font-black">{stats.users}</div>
+              </div>
+              <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
+                <div className="flex items-center gap-3 text-on-surface-variant mb-2">
+                  <span className="material-symbols-outlined">article</span>
+                  <h3 className="font-bold">Total Posts</h3>
+                </div>
+                <div className="text-4xl font-black">{stats.posts}</div>
+              </div>
+              <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
+                <div className="flex items-center gap-3 text-on-surface-variant mb-2">
+                  <span className="material-symbols-outlined">cloud</span>
+                  <h3 className="font-bold">Storage Used</h3>
+                </div>
+                <div className="text-4xl font-black text-primary">{formatBytes(stats.storageBytes)}</div>
+              </div>
+            </div>
+
+            <div className="bg-surface-container rounded-2xl border border-outline-variant/15 overflow-hidden">
+              <div className="p-6 border-b border-outline-variant/15 flex justify-between items-center">
+                <h2 className="text-xl font-bold font-headline">System Status</h2>
+              </div>
+              <div className="p-6">
+                <p className="text-on-surface-variant mb-4">Welcome to the Hackspot Admin Panel. Use the tabs on the left to navigate between different management sections.</p>
+                <div className="bg-primary/10 text-primary p-4 rounded-xl flex items-start gap-3">
+                  <span className="material-symbols-outlined mt-0.5">info</span>
+                  <div>
+                    <h4 className="font-bold mb-1">Admin Access Granted</h4>
+                    <p className="text-sm opacity-80">You are viewing this page because your account has the 'admin' or 'owner' tag. You can promote other users using the <code>npm run promote -- email@example.com</code> script in the terminal.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 'users':
+        return (
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
+            <h2 className="text-xl font-bold font-headline mb-4">User Management</h2>
+            <p className="text-on-surface-variant">User list and moderation tools will appear here in a future update.</p>
+          </div>
+        );
+      case 'posts':
+        return (
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
+            <h2 className="text-xl font-bold font-headline mb-4">Content Moderation</h2>
+            <p className="text-on-surface-variant">Post feed and deletion tools will appear here in a future update.</p>
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
+            <h2 className="text-xl font-bold font-headline mb-4">System Settings</h2>
+            <p className="text-on-surface-variant">Global app configuration will appear here in a future update.</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
       {/* Sidebar */}
       <aside className="w-64 bg-surface border-r border-outline-variant/15 h-screen sticky top-0 p-6 flex flex-col">
         <div className="text-primary font-black text-2xl mb-8 font-headline">Hackspot Admin</div>
         <nav className="space-y-2 flex-1">
-          <a href="#" className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl font-bold">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+          >
             <span className="material-symbols-outlined">dashboard</span>
             Dashboard
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition">
+          </button>
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'users' ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+          >
             <span className="material-symbols-outlined">group</span>
             Users
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition">
+          </button>
+          <button 
+            onClick={() => setActiveTab('posts')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'posts' ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+          >
             <span className="material-symbols-outlined">article</span>
             Posts
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition">
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+          >
             <span className="material-symbols-outlined">settings</span>
             Settings
-          </a>
+          </button>
         </nav>
         <Link href="/" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition mt-auto">
           <span className="material-symbols-outlined">arrow_back</span>
@@ -99,7 +200,7 @@ function AdminPage() {
       {/* Main Content */}
       <main className="flex-1 p-8">
         <header className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-headline font-black">Admin Dashboard</h1>
+          <h1 className="text-3xl font-headline font-black capitalize">{activeTab}</h1>
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="font-bold">{session.user.name}</div>
@@ -109,45 +210,7 @@ function AdminPage() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
-            <div className="flex items-center gap-3 text-on-surface-variant mb-2">
-              <span className="material-symbols-outlined">group</span>
-              <h3 className="font-bold">Total Users</h3>
-            </div>
-            <div className="text-4xl font-black">--</div>
-          </div>
-          <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
-            <div className="flex items-center gap-3 text-on-surface-variant mb-2">
-              <span className="material-symbols-outlined">article</span>
-              <h3 className="font-bold">Total Posts</h3>
-            </div>
-            <div className="text-4xl font-black">--</div>
-          </div>
-          <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/15">
-            <div className="flex items-center gap-3 text-on-surface-variant mb-2">
-              <span className="material-symbols-outlined">report</span>
-              <h3 className="font-bold">Reports</h3>
-            </div>
-            <div className="text-4xl font-black">0</div>
-          </div>
-        </div>
-
-        <div className="bg-surface-container rounded-2xl border border-outline-variant/15 overflow-hidden">
-          <div className="p-6 border-b border-outline-variant/15 flex justify-between items-center">
-            <h2 className="text-xl font-bold font-headline">System Status</h2>
-          </div>
-          <div className="p-6">
-            <p className="text-on-surface-variant mb-4">Welcome to the Hackspot Admin Panel. From here you can manage users, moderate content, and configure system settings.</p>
-            <div className="bg-primary/10 text-primary p-4 rounded-xl flex items-start gap-3">
-              <span className="material-symbols-outlined mt-0.5">info</span>
-              <div>
-                <h4 className="font-bold mb-1">Admin Access Granted</h4>
-                <p className="text-sm opacity-80">You are viewing this page because your account has the 'admin' or 'owner' tag. You can promote other users using the <code>npm run promote</code> script in the terminal.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {renderTabContent()}
       </main>
     </div>
   );
