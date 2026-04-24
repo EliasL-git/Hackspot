@@ -37,6 +37,13 @@ const server = http.createServer(async (req, res) => {
         return res.end("Missing key");
     }
 
+    // Security & Bot filtering: Only serve files from the uploads/ directory
+    // This prevents vulnerability scanners from spamming S3 with requests for .env, .git, etc.
+    if (!key.startsWith('uploads/')) {
+        res.writeHead(404);
+        return res.end("Not found");
+    }
+
     try {
         const command = new GetObjectCommand({
             Bucket: bucket,
@@ -54,9 +61,15 @@ const server = http.createServer(async (req, res) => {
         // Stream the S3 object directly to the client
         response.Body.pipe(res);
     } catch (error) {
-        console.error(`S3 GetObject error for key ${key}:`, error.message);
-        res.writeHead(error.$metadata?.httpStatusCode || 404);
-        res.end("Not found or access denied");
+        // Don't log 404s as errors to keep logs clean
+        if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+            res.writeHead(404);
+            return res.end("Not found");
+        }
+        
+        console.error(`S3 GetObject error for key ${key}:`, error.name, error.message);
+        res.writeHead(error.$metadata?.httpStatusCode || 500);
+        res.end("Internal Server Error or Access Denied");
     }
 });
 
