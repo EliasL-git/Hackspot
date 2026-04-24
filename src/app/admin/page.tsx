@@ -7,12 +7,25 @@ import dynamic from "next/dynamic";
 import { UserTag } from "@/components/UserTag";
 
 function formatBytes(bytes: number, decimals = 2) {
-  if (!+bytes) return '0 Bytes';
+  if (!+bytes) return '0 KB';
+  
+  // If bytes is less than 1KB, force it to show as a fraction of KB
+  if (bytes < 1024) {
+    return `${(bytes / 1024).toFixed(decimals)} KB`;
+  }
+  
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  // Start from KB instead of Bytes
+  const sizes = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  
+  // Adjust the index calculation to account for starting at KB
+  const i = Math.floor(Math.log(bytes) / Math.log(k)) - 1;
+  
+  // If calculation goes out of bounds (e.g. negative), fallback to KB
+  if (i < 0) return `${(bytes / 1024).toFixed(dm)} KB`;
+  
+  return `${parseFloat((bytes / Math.pow(k, i + 1)).toFixed(dm))} ${sizes[i]}`;
 }
 
 function AdminPage() {
