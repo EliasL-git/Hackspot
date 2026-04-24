@@ -62,7 +62,14 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Install tsx globally so npm run promote works in the container
+RUN npm install -g tsx
+
 COPY --from=builder /app/public ./public
+# Copy scripts and config needed for CLI tools
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/package.json ./
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
