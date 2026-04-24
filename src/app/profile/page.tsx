@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
-import { User, ShieldCheck, Mail, Slack, X, Github } from "lucide-react";
+import { User, ShieldCheck, Mail, Slack, X, Github, Settings } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
@@ -256,13 +256,20 @@ function ProfilePageContent() {
                   <img src={user.image || gravatarUrl} alt={user.name} className="w-24 h-24 md:w-36 md:h-36 rounded-full border-4 border-background object-cover bg-surface-container" />
                 </div>
               </div>
-              <div className="pt-4">
+              <div className="pt-4 flex items-center gap-2">
                 <button 
                   onClick={startEditing}
                   className="px-6 py-2 border border-outline-variant font-headline font-bold rounded-full hover:bg-surface-container-high transition-colors"
                 >
                   Edit Profile
                 </button>
+                <Link 
+                  href="/settings"
+                  className="p-2 border border-outline-variant rounded-full hover:bg-surface-container-high transition-colors flex items-center justify-center"
+                  title="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </Link>
               </div>
             </div>
 
