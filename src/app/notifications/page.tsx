@@ -80,7 +80,7 @@ function NotificationsPageContent() {
   return (
     <div className="flex min-h-screen max-w-[1440px] mx-auto bg-background text-on-surface">
       {/* Sidebar (Desktop) */}
-       <aside className="flex flex-col h-screen sticky top-0 p-6 space-y-2 bg-surface w-72 border-r border-outline-variant/15">
+      <aside className="flex flex-col h-screen sticky top-0 p-6 space-y-2 bg-surface w-72 border-r border-outline-variant/15">
         <Link href="/" className="text-[#ec3750] font-black text-3xl mb-8 font-headline">Hackspot</Link>
         <nav className="flex-1 space-y-1">
           <Link href="/" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
@@ -94,6 +94,10 @@ function NotificationsPageContent() {
           <Link href="/profile" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
             <span className="material-symbols-outlined">person</span>
             <span>Profile</span>
+          </Link>
+          <Link href="/settings" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
+            <span className="material-symbols-outlined">settings</span>
+            <span>Settings</span>
           </Link>
         </nav>
       </aside>
@@ -159,4 +163,4 @@ function NotificationsPageContent() {
   );
 }
 
-export default dynamic(() => Promise.resolve(NotificationsPageContent), { ssr: false });
+export default dynamic(() => Promise.resolve(NotificationsPageContent), { ss: false });
