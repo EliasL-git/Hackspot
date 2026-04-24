@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { authClient } from "@/lib/auth-client";
 import { LogIn, LogOut, Send, User, UserCircle } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +19,9 @@ interface Post {
     verificationStatus?: string;
     equippedTag?: string;
     tags?: string[];
+    githubStats?: {
+      totalLines: number;
+    };
   };
   media?: { url: string; type: string }[];
   ogData?: {
@@ -30,6 +33,7 @@ interface Post {
   likes: string[];
   reposts: string[];
   reports?: string[];
+  viewCount?: number;
   createdAt: string;
 }
 
@@ -48,6 +52,9 @@ function HomePage() {
   const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Track which posts have been viewed in this session to avoid spamming the API
+  const viewedPosts = useRef<Set<string>>(new Set());
 
   const fetchData = async () => {
     try {
@@ -103,6 +110,31 @@ function HomePage() {
   useEffect(() => {
     fetchData();
   }, [session]);
+
+  // Intersection Observer to track post views
+  const observer = useRef<IntersectionObserver | null>(null);
+  
+  const postRef = useCallback((node: HTMLElement | null, postId: string) => {
+    if (!node) return;
+    
+    if (!observer.current) {
+      observer.current = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('data-post-id');
+            if (id && !viewedPosts.current.has(id)) {
+              viewedPosts.current.add(id);
+              // Fire and forget view tracking
+              fetch(`/api/posts/${id}/view`, { method: 'POST' }).catch(() => {});
+            }
+          }
+        });
+      }, { threshold: 0.5 }); // Trigger when 50% of the post is visible
+    }
+    
+    node.setAttribute('data-post-id', postId);
+    observer.current.observe(node);
+  }, []);
 
   const handleSignIn = async () => {
     await authClient.signIn.oauth2({
@@ -360,8 +392,7 @@ function HomePage() {
             </span>
           );
         }
-        const stats = (session?.user as any)?.githubStats;
-        const count = stats?.totalLines || 0;
+        const count = author?.githubStats?.totalLines || 0;
         return (
           <span key={i} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-md font-mono font-bold text-sm">
             <span className="material-symbols-outlined text-[16px]">code</span>
@@ -585,7 +616,11 @@ function HomePage() {
 
         <div className="divide-y divide-outline-variant/15">
           {posts.map((post) => (
-            <article key={post._id} className="p-6 flex gap-4 hover:bg-surface-container-low/50 transition-colors cursor-pointer group border-b border-outline-variant/10">
+            <article 
+              key={post._id} 
+              ref={(node) => postRef(node, post._id)}
+              className="p-6 flex gap-4 hover:bg-surface-container-low/50 transition-colors cursor-pointer group border-b border-outline-variant/10"
+            >
               <div className="w-12 h-12 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
                 <img src={post.author.image} alt={post.author.name} className="w-full h-full object-cover" />
               </div>
@@ -653,7 +688,7 @@ function HomePage() {
                   </a>
                 )}
 
-                <div className="flex justify-start text-on-surface-variant/60 max-w-lg">
+                <div className="flex justify-start items-center gap-6 text-on-surface-variant/60 max-w-lg">
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleLike(post._id); }}
                     className={`flex items-center gap-2 group/btn transition-all ${post.likes?.includes(session?.user.id || '') ? 'text-[#ec3750]' : 'hover:text-[#ec3750]'}`}
@@ -661,6 +696,11 @@ function HomePage() {
                     <span className={`material-symbols-outlined text-[20px] p-2.5 group-hover/btn:bg-[#ec3750]/10 rounded-full ${post.likes?.includes(session?.user.id || '') ? 'font-fill' : ''}`}>favorite</span>
                     <span className="text-sm font-label">{post.likes?.length || 0}</span>
                   </button>
+                  
+                  <div className="flex items-center gap-2 group/btn transition-all cursor-default">
+                    <span className="material-symbols-outlined text-[20px] p-2.5 rounded-full">bar_chart</span>
+                    <span className="text-sm font-label">{post.viewCount || 0}</span>
+                  </div>
                 </div>
               </div>
             </article>

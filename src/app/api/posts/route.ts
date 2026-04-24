@@ -43,6 +43,7 @@ export async function GET(req: Request) {
       let authorTags = post.author?.tags || [];
       let authorEquippedTag = post.author?.equippedTag;
       let authorVerificationStatus = post.author?.verificationStatus;
+      let authorGithubStats = user?.githubStats || null;
 
       if (post.author?.slackId === 'orpheus') {
         const orpheus = await User.findOne({ slackId: 'orpheus' }).lean() as any;
@@ -51,6 +52,7 @@ export async function GET(req: Request) {
           authorTags = orpheus.tags || authorTags;
           authorEquippedTag = orpheus.equippedTag || (orpheus.tags && orpheus.tags[0]);
           authorVerificationStatus = orpheus.verificationStatus || authorVerificationStatus;
+          authorGithubStats = orpheus.githubStats || authorGithubStats;
         }
       }
 
@@ -61,7 +63,8 @@ export async function GET(req: Request) {
           image: authorImage || gravatar,
           tags: authorTags,
           equippedTag: authorEquippedTag,
-          verificationStatus: authorVerificationStatus
+          verificationStatus: authorVerificationStatus,
+          githubStats: authorGithubStats
         }
       };
     }));
