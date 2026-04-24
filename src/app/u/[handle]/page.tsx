@@ -249,21 +249,21 @@ function PublicProfileContent() {
                 className="p-6 flex gap-4 hover:bg-surface-container-low/50 transition-colors cursor-pointer group border-b border-outline-variant/10"
               >
                 <div className="w-12 h-12 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
-                  <img src={profile.image} alt={profile.name} className="w-full h-full object-cover" />
+                  <img src={post.author.image} alt={post.author.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold font-headline text-lg group-hover:text-primary transition-colors">{profile.name}</span>
-                    {Array.isArray(profile.tags) && (profile.equippedTag || profile.tags[0]) && (
-                      <UserTag tag={profile.equippedTag || profile.tags[0]} />
+                    <span className="font-bold font-headline text-lg group-hover:text-primary transition-colors">{post.author.name}</span>
+                    {Array.isArray(post.author.tags) && (post.author.equippedTag || post.author.tags[0]) && (
+                      <UserTag tag={post.author.equippedTag || post.author.tags[0]} />
                     )}
-                    {profile.verificationStatus === "verified" && (
+                    {post.author.verificationStatus === "verified" && (
                       <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Verified notable member">verified</span>
                     )}
-                    <span className="text-on-surface-variant/60 font-body text-sm truncate" title="Username">@{profile.slackId}</span>
+                    <span className="text-on-surface-variant/60 font-body text-sm truncate" title="Username">@{post.author.slackId}</span>
                     <span className="text-on-surface-variant/40 font-body text-sm">· {new Date(post.createdAt).toLocaleDateString()}</span>
                   </div>
-                  <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content, profile)}</div>
+                  <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content, post.author)}</div>
                   
                   {/* Media */}
                   {post.media && post.media.length > 0 && (
