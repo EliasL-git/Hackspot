@@ -1,7 +1,3 @@
-
-WIP.
-
-Fetures that arent working, Media upload's gifs, emojis. stats on posts
 # Hackspot
 
 Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and a command/mention feed.
@@ -16,6 +12,9 @@ Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and
 - Public profiles at `/u/[handle]`
 - Notifications at `/notifications`
 - Post detail view at `/post/[id]`
+- Media & GIF Uploads (via AWS S3)
+- OpenGraph Link Previews
+- Cursor-based Pagination
 
 ## Local Development
 
@@ -25,7 +24,7 @@ Hackspot is a social coding app built with Next.js 16, Better Auth, MongoDB, and
 npm ci
 ```
 
-2) Create `.env` (example):
+2) Create `.env` (you can copy from `.env.example`):
 
 ```dotenv
 MONGODB_URI=mongodb://mongo:password@host:port
@@ -34,6 +33,12 @@ HACKCLUB_CLIENT_SECRET=<client-secret>
 BETTER_AUTH_SECRET=<secret>
 BETTER_AUTH_URL=http://localhost:3000
 GITHUB_TOKEN=<github-token>
+
+# AWS S3 for Media Uploads
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=<your-access-key>
+AWS_SECRET_ACCESS_KEY=<your-secret-key>
+AWS_S3_BUCKET_NAME=hackspot-uploads
 ```
 
 3) Start dev server:
@@ -63,6 +68,7 @@ docker run -p 4555:4555 hackspot
 - `GET /api/users/search?q=` for mentions
 - `GET /api/hashtags/search?q=` for hashtags
 - `GET /api/users/profile/[handle]` for profile data
+- `POST /api/upload` for S3 media uploads
 
 ## Data Model Notes
 
@@ -80,5 +86,4 @@ docker run -p 4555:4555 hackspot
 
 - `npm run lint`
 - `npm run build`
-- `npm start`
-
+- `npm run start`
