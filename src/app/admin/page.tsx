@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { UserTag } from "@/components/UserTag";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
@@ -20,6 +21,9 @@ function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState({ users: 0, posts: 0, storageBytes: 0 });
+  
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [adminPosts, setAdminPosts] = useState<any[]>([]);
 
   useEffect(() => {
     if (session?.user) {
@@ -47,6 +51,13 @@ function AdminPage() {
     }
   }, [session, isPending]);
 
+  useEffect(() => {
+    if (isAdmin) {
+      if (activeTab === 'users' && adminUsers.length === 0) fetchUsers();
+      if (activeTab === 'posts' && adminPosts.length === 0) fetchPosts();
+    }
+  }, [activeTab, isAdmin]);
+
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/stats');
@@ -58,6 +69,65 @@ function AdminPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) setAdminUsers(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const res = await fetch('/api/admin/posts');
+      if (res.ok) setAdminPosts(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateTags = async (userId: string, currentTags: string[]) => {
+    const input = window.prompt("Enter tags separated by commas (e.g. admin,notable,bot):", currentTags?.join(", ") || "");
+    if (input === null) return; // cancelled
+    
+    const newTags = input.split(",").map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/tags`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: newTags })
+      });
+      
+      if (res.ok) {
+        setAdminUsers(prev => prev.map(u => u._id === userId ? { ...u, tags: newTags } : u));
+      } else {
+        alert("Failed to update tags");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error updating tags");
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
+    
+    try {
+      const res = await fetch(`/api/admin/posts/${postId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAdminPosts(prev => prev.filter(p => p._id !== postId));
+        setStats(prev => ({ ...prev, posts: prev.posts - 1 }));
+      } else {
+        alert("Failed to delete post");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error deleting post");
     }
   };
 
@@ -123,7 +193,7 @@ function AdminPage() {
                   <span className="material-symbols-outlined mt-0.5">info</span>
                   <div>
                     <h4 className="font-bold mb-1">Admin Access Granted</h4>
-                    <p className="text-sm opacity-80">You are viewing this page because your account has the 'admin' or 'owner' tag. You can promote other users using the <code>npm run promote -- email@example.com</code> script in the terminal.</p>
+                    <p className="text-sm opacity-80">You are viewing this page because your account has the 'admin' or 'owner' tag. You can promote other users using the <code>npm run promote -- email@example.com</code> script in the terminal, or via the Users tab.</p>
                   </div>
                 </div>
               </div>
@@ -132,16 +202,102 @@ function AdminPage() {
         );
       case 'users':
         return (
-          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
-            <h2 className="text-xl font-bold font-headline mb-4">User Management</h2>
-            <p className="text-on-surface-variant">User list and moderation tools will appear here in a future update.</p>
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 overflow-hidden">
+            <div className="p-6 border-b border-outline-variant/15 flex justify-between items-center">
+              <h2 className="text-xl font-bold font-headline">User Management</h2>
+              <button onClick={fetchUsers} className="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span className="material-symbols-outlined">refresh</span>
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-on-surface-variant text-sm uppercase tracking-wider">
+                    <th className="p-4 font-bold">User</th>
+                    <th className="p-4 font-bold">Email</th>
+                    <th className="p-4 font-bold">Tags</th>
+                    <th className="p-4 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {adminUsers.map(u => (
+                    <tr key={u._id} className="hover:bg-surface-container-high/50 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <img src={u.image || `https://www.gravatar.com/avatar/?d=identicon`} className="w-8 h-8 rounded-full" alt="" />
+                          <div>
+                            <div className="font-bold">{u.name}</div>
+                            <div className="text-xs text-on-surface-variant">@{u.slackId || u.id.slice(-6)}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 text-sm text-on-surface-variant">{u.email}</td>
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-1">
+                          {u.tags?.map((t: string) => <UserTag key={t} tag={t} />)}
+                          {(!u.tags || u.tags.length === 0) && <span className="text-xs text-on-surface-variant italic">none</span>}
+                        </div>
+                      </td>
+                      <td className="p-4 text-right">
+                        <button 
+                          onClick={() => handleUpdateTags(u._id, u.tags || [])}
+                          className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-bold transition-colors"
+                        >
+                          Edit Tags
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       case 'posts':
         return (
-          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
-            <h2 className="text-xl font-bold font-headline mb-4">Content Moderation</h2>
-            <p className="text-on-surface-variant">Post feed and deletion tools will appear here in a future update.</p>
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 overflow-hidden">
+            <div className="p-6 border-b border-outline-variant/15 flex justify-between items-center">
+              <h2 className="text-xl font-bold font-headline">Content Moderation</h2>
+              <button onClick={fetchPosts} className="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span className="material-symbols-outlined">refresh</span>
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-on-surface-variant text-sm uppercase tracking-wider">
+                    <th className="p-4 font-bold">Author</th>
+                    <th className="p-4 font-bold">Content Excerpt</th>
+                    <th className="p-4 font-bold">Date</th>
+                    <th className="p-4 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {adminPosts.map(p => (
+                    <tr key={p._id} className="hover:bg-surface-container-high/50 transition-colors">
+                      <td className="p-4">
+                        <div className="font-bold">{p.author?.name || 'Unknown'}</div>
+                        <div className="text-xs text-on-surface-variant">@{p.author?.slackId || 'unknown'}</div>
+                      </td>
+                      <td className="p-4 text-sm max-w-md truncate">
+                        {p.content || <span className="italic text-on-surface-variant">[Media only]</span>}
+                      </td>
+                      <td className="p-4 text-sm text-on-surface-variant">
+                        {new Date(p.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="p-4 text-right">
+                        <button 
+                          onClick={() => handleDeletePost(p._id)}
+                          className="px-3 py-1.5 bg-error/10 text-error hover:bg-error/20 rounded-lg text-sm font-bold transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       case 'settings':
@@ -198,7 +354,7 @@ function AdminPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 overflow-x-hidden">
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-headline font-black capitalize">{activeTab}</h1>
           <div className="flex items-center gap-4">
