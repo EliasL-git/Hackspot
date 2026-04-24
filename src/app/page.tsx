@@ -226,7 +226,7 @@ function HomePage() {
     // Get cursor position to find what we're typing
     const cursor = e.target.selectionStart;
     const contentBefore = value.slice(0, cursor);
-    const words = contentBefore.split(/\\s+/);
+    const words = contentBefore.split(/\s+/);
     const currentWord = words[words.length - 1];
 
     if (currentWord.startsWith("$")) {
@@ -274,7 +274,7 @@ function HomePage() {
     const cursor = (document.querySelector('textarea') as any).selectionStart;
     const contentBefore = newPost.slice(0, cursor);
     const contentAfter = newPost.slice(cursor);
-    const words = contentBefore.split(/\\s+/);
+    const words = contentBefore.split(/\s+/);
     words[words.length - 1] = (showAutoFill || "") + suggestion + " ";
     setNewPost(words.join(" ") + contentAfter);
     setShowAutoFill(null);
@@ -352,7 +352,7 @@ function HomePage() {
 
   const renderContent = (content: string, author: any) => {
     if (!content) return null;
-    return content.split(/(\\s+)/).map((part, i) => {
+    return content.split(/(\s+)/).map((part, i) => {
       // Hashtags
       if (part.startsWith("#")) {
         const tag = part.slice(1);
@@ -370,7 +370,7 @@ function HomePage() {
       
       // Mentions
       if (part.startsWith("@") && part.length > 1) {
-        const handle = part.slice(1).replace(/[^\\w\\d]/g, ""); // Clean the handle
+        const handle = part.slice(1).replace(/[^\w\d]/g, ""); // Clean the handle
         return (
           <Link
             key={i}
@@ -473,6 +473,13 @@ function HomePage() {
                   <span className="material-symbols-outlined">person</span>
                   <span>Profile</span>
                 </Link>
+                <Link
+                  className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg active:scale-[0.98]"
+                  href="/settings"
+                >
+                  <span className="material-symbols-outlined">settings</span>
+                  <span>Settings</span>
+                </Link>
                 {/* Admin Link if user has admin/owner tag */}
                 {(session.user as any)?.tags?.some((t: string) => ['admin', 'owner'].includes(t)) && (
                   <Link
@@ -520,7 +527,7 @@ function HomePage() {
           <form onSubmit={handleSubmit} className="p-8 border-b border-outline-variant/15 flex gap-6 hover:bg-white/[0.01] transition-colors">
             <div className="w-14 h-14 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
               <img 
-                src={`https://www.gravatar.com/avatar/${MD5(session.user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`} 
+                src={(session.user as any).image || `https://www.gravatar.com/avatar/${MD5(session.user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`} 
                 alt={session.user.name} 
                 className="w-full h-full object-cover" 
               />
