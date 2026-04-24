@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { authClient } from "@/lib/auth-client";
 import { LogIn, LogOut, Send, User, UserCircle } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +20,13 @@ interface Post {
     equippedTag?: string;
     tags?: string[];
   };
+  media?: { url: string; type: string }[];
+  ogData?: {
+    title?: string;
+    description?: string;
+    image?: string;
+    url?: string;
+  };
   likes: string[];
   reposts: string[];
   createdAt: string;
@@ -28,12 +35,18 @@ interface Post {
 function HomePage() {
   const { data: session, isPending } = authClient.useSession();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [trends, setTrends] = useState<any[]>([]);
   const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAutoFill, setShowAutoFill] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  
+  const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     try {
@@ -55,10 +68,34 @@ function HomePage() {
       ]);
       const postsData = await postsRes.json();
       const trendsData = await trendsRes.json();
-      if (Array.isArray(postsData)) setPosts(postsData);
+      
+      if (postsData.posts) {
+        setPosts(postsData.posts);
+        setNextCursor(postsData.nextCursor);
+      } else if (Array.isArray(postsData)) {
+        setPosts(postsData);
+      }
+      
       if (Array.isArray(trendsData)) setTrends(trendsData);
     } catch (err) {
       console.error("Fetch error:", err);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/posts?cursor=${nextCursor}`);
+      const data = await res.json();
+      if (data.posts) {
+        setPosts(prev => [...prev, ...data.posts]);
+        setNextCursor(data.nextCursor);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -85,7 +122,19 @@ function HomePage() {
     try {
       const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
       if (res.ok) {
-        fetchData();
+        // Optimistically update
+        setPosts(prev => prev.map(p => {
+          if (p._id === postId) {
+            const hasLiked = p.likes?.includes(session.user.id);
+            return {
+              ...p,
+              likes: hasLiked 
+                ? p.likes.filter(id => id !== session.user.id)
+                : [...(p.likes || []), session.user.id]
+            };
+          }
+          return p;
+        }));
       } else {
         const errorData = await res.json();
         alert(`Failed to like: ${errorData.error || "Unknown error"}`);
@@ -100,7 +149,9 @@ function HomePage() {
     if (!session || !confirm("Are you sure you want to delete this post?")) return;
     try {
       const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
-      if (res.ok) fetchData();
+      if (res.ok) {
+        setPosts(prev => prev.filter(p => p._id !== postId));
+      }
     } catch (error) {
       console.error(error);
     }
@@ -113,7 +164,7 @@ function HomePage() {
     // Get cursor position to find what we're typing
     const cursor = e.target.selectionStart;
     const contentBefore = value.slice(0, cursor);
-    const words = contentBefore.split(/\s+/);
+    const words = contentBefore.split(/\\s+/);
     const currentWord = words[words.length - 1];
 
     if (currentWord.startsWith("$")) {
@@ -161,7 +212,7 @@ function HomePage() {
     const cursor = (document.querySelector('textarea') as any).selectionStart;
     const contentBefore = newPost.slice(0, cursor);
     const contentAfter = newPost.slice(cursor);
-    const words = contentBefore.split(/\s+/);
+    const words = contentBefore.split(/\\s+/);
     words[words.length - 1] = (showAutoFill || "") + suggestion + " ";
     setNewPost(words.join(" ") + contentAfter);
     setShowAutoFill(null);
@@ -184,19 +235,48 @@ function HomePage() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: file.type })
+      });
+      const { signedUrl, fileUrl } = await res.json();
+      
+      await fetch(signedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type }
+      });
+      
+      setMediaFiles(prev => [...prev, { url: fileUrl, type: file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image' }]);
+    } catch (err) {
+      alert("Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPost.trim() || !session) return;
+    if ((!newPost.trim() && mediaFiles.length === 0) || !session) return;
 
     setLoading(true);
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newPost }),
+        body: JSON.stringify({ content: newPost, media: mediaFiles }),
       });
       if (res.ok) {
         setNewPost("");
+        setMediaFiles([]);
         fetchData();
       }
     } catch (error: any) {
@@ -209,7 +289,8 @@ function HomePage() {
   if (isPending) return null;
 
   const renderContent = (content: string, author: any) => {
-    return content.split(/(\s+)/).map((part, i) => {
+    if (!content) return null;
+    return content.split(/(\\s+)/).map((part, i) => {
       // Hashtags
       if (part.startsWith("#")) {
         const tag = part.slice(1);
@@ -227,7 +308,7 @@ function HomePage() {
       
       // Mentions
       if (part.startsWith("@") && part.length > 1) {
-        const handle = part.slice(1).replace(/[^\w\d]/g, ""); // Clean the handle
+        const handle = part.slice(1).replace(/[^\\w\\d]/g, ""); // Clean the handle
         return (
           <Link
             key={i}
@@ -259,8 +340,7 @@ function HomePage() {
         );
       }
 
-      // $repo command (Simplified regex for URL following $repo)
-      // Note: This matches when a part starts with $repo and is followed by content
+      // $repo command
       if (part.startsWith("$repo")) {
         return (
           <span key={i} className="text-primary-dim font-mono font-bold">
@@ -407,12 +487,27 @@ function HomePage() {
                   </div>
                 </div>
               )}
+
+              {mediaFiles.length > 0 && (
+                <div className="flex gap-2 p-2 overflow-x-auto">
+                  {mediaFiles.map((m, i) => (
+                    <div key={i} className="relative w-20 h-20 flex-shrink-0">
+                      <img src={m.url} alt="upload preview" className="w-full h-full object-cover rounded-md" />
+                      <button type="button" onClick={() => setMediaFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1">
+                        <span className="material-symbols-outlined text-[14px]">close</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex justify-between items-center pt-4 border-t border-outline-variant/15 mt-2">
                 <div className="flex gap-2 text-primary">
-                  <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
                     <span className="material-symbols-outlined text-[24px]">image</span>
                   </button>
-                  <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
                     <span className="material-symbols-outlined text-[24px]">gif_box</span>
                   </button>
                   <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
@@ -424,10 +519,10 @@ function HomePage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading || !newPost.trim()}
+                  disabled={loading || uploading || (!newPost.trim() && mediaFiles.length === 0)}
                   className="bg-primary hover:brightness-110 text-on-primary-fixed px-10 py-3 rounded-full font-headline font-bold text-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 active:scale-95"
                 >
-                  {loading ? "Posting..." : "Post"}
+                  {loading || uploading ? "Posting..." : "Post"}
                 </button>
               </div>
             </div>
@@ -476,6 +571,30 @@ function HomePage() {
                   )}
                 </div>
                 <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content, post.author)}</div>
+                
+                {/* Media */}
+                {post.media && post.media.length > 0 && (
+                  <div className="mt-3 grid gap-2 grid-cols-2 mb-4">
+                    {post.media.map((m, i) => (
+                      <img key={i} src={m.url} alt="Post media" className="rounded-xl max-h-96 object-cover w-full" />
+                    ))}
+                  </div>
+                )}
+
+                {/* OpenGraph Card */}
+                {post.ogData && (
+                  <a href={post.ogData.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="mb-4 block border border-outline-variant/20 rounded-xl overflow-hidden hover:bg-surface-container-low/50 transition-colors">
+                    {post.ogData.image && (
+                      <img src={post.ogData.image} alt={post.ogData.title} className="w-full h-48 object-cover" />
+                    )}
+                    <div className="p-4">
+                      <h4 className="font-bold text-primary truncate">{post.ogData.title}</h4>
+                      <p className="text-sm text-on-surface-variant line-clamp-2 mt-1">{post.ogData.description}</p>
+                      <span className="text-xs text-on-surface-variant/60 mt-2 block truncate">{post.ogData.url}</span>
+                    </div>
+                  </a>
+                )}
+
                 <div className="flex justify-start text-on-surface-variant/60 max-w-lg">
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleLike(post._id); }}
@@ -493,6 +612,18 @@ function HomePage() {
             <div className="p-12 text-center text-on-surface-variant">
               <span className="material-symbols-outlined text-6xl mb-4 opacity-20">post_add</span>
               <p>No posts yet. Be the first to share something!</p>
+            </div>
+          )}
+
+          {nextCursor && (
+            <div className="p-6 text-center border-t border-outline-variant/15">
+              <button 
+                onClick={loadMore} 
+                disabled={loadingMore}
+                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest rounded-full text-primary font-bold transition-colors disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
             </div>
           )}
         </div>
@@ -575,4 +706,3 @@ function HomePage() {
 export default dynamic(() => Promise.resolve(HomePage), {
   ssr: false,
 });
-
