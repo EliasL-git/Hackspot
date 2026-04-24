@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const enrichedPosts = await Promise.all(posts.map(async (post: any) => {
       let user = null;
       try {
-        user = await User.findOne({ _id: post.author.id });
+        user = await User.findOne({ id: post.author.id }).lean();
       } catch (e) {}
       
       const email = user?.email || "hack@club.com";
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     if (content && content.trim() === "$help") {
       const orpheus = await User.findOne({ slackId: 'orpheus' });
       if (orpheus) {
-        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦖 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
+        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦕 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
 
         const welcomePost = await Post.create({
           content: welcomeContent,
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const currentUser = await User.findOne({ id: session.user.id });
+    const currentUser = await User.findOne({ id: session.user.id }).lean() as any;
 
     const post = await Post.create({
       content: content || "",
@@ -171,6 +171,7 @@ export async function POST(req: Request) {
         verificationStatus: (session.user as any).verificationStatus || "false",
         tags: currentUser?.tags || [],
         equippedTag: currentUser?.equippedTag || (currentUser?.tags && currentUser?.tags[0]),
+        githubStats: currentUser?.githubStats || null,
       },
     });
 

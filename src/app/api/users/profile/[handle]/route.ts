@@ -28,12 +28,25 @@ export async function GET(
     // Generate Gravatar
     const gravatar = `https://www.gravatar.com/avatar/${md5(user.email.toLowerCase().trim())}?d=identicon&s=200`;
 
+    // Enrich posts with the user's latest data (like githubStats)
+    const enrichedPosts = posts.map((post: any) => ({
+      ...post,
+      author: {
+        ...post.author,
+        image: user.image || gravatar,
+        tags: user.tags || [],
+        equippedTag: user.equippedTag || (user.tags && user.tags[0]),
+        verificationStatus: user.verificationStatus,
+        githubStats: user.githubStats || null,
+      }
+    }));
+
     return NextResponse.json({
       user: {
         ...user,
-        image: gravatar
+        image: user.image || gravatar
       },
-      posts
+      posts: enrichedPosts
     });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch user profile" }, { status: 500 });

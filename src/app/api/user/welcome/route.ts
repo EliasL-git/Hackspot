@@ -35,13 +35,14 @@ export async function GET(req: Request) {
         if (orpheus) {
             // Create a welcome post from Orpheus mentioning the new user
             await Post.create({
-                content: `Welcome to Hackspot, @${user.slackId || user.name.replace(/\s+/g, '').toLowerCase()}! 🦖 So glad to have you here. Try typing @ to mention someone, # for hashtags, or $ for commands!`,
+                content: `Welcome to Hackspot, @${user.slackId || user.name.replace(/\s+/g, '').toLowerCase()}! 🦕 So glad to have you here. Try typing @ to mention someone, # for hashtags, or $ for commands!`,
                 author: {
                     id: orpheus.id,
                     name: orpheus.name,
                     image: orpheus.image,
                     slackId: orpheus.slackId,
                     verificationStatus: orpheus.verificationStatus,
+                    githubStats: orpheus.githubStats || null,
                 },
                 createdAt: new Date()
             });
