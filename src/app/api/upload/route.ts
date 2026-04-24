@@ -34,11 +34,11 @@ export async function POST(req: Request) {
         
         // Construct the public URL
         let fileUrl;
-        if (process.env.AWS_S3_PUBLIC_URL) {
+        if (process.env.AWS_S3_PUBLIC_URL && process.env.AWS_S3_PUBLIC_URL.trim() !== "") {
             // Explicit public URL (e.g., CDN or custom endpoint like https://storageperk.s3.fra.databucket.eu)
             const publicUrl = process.env.AWS_S3_PUBLIC_URL.replace(/\\/$/, '');
             fileUrl = `${publicUrl}/${key}`;
-        } else if (process.env.AWS_ENDPOINT_URL_S3) {
+        } else if (process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ENDPOINT_URL_S3.trim() !== "") {
             // For custom endpoints (like MinIO, R2, etc.)
             const endpoint = process.env.AWS_ENDPOINT_URL_S3.replace(/\\/$/, '');
             if (process.env.AWS_FORCE_PATH_STYLE === "true") {
