@@ -62,6 +62,12 @@ export const auth = betterAuth({
   database: mongodbAdapter(db),
   secret: process.env.BETTER_AUTH_SECRET || "dev-secret",
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  account: {
+    accountLinking: {
+      enabled: true,
+      allowDifferentEmails: true, // Allow linking GitHub even if email differs from Hack Club
+    },
+  },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID as string,
