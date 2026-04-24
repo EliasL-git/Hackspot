@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import dynamic from "next/dynamic";
+import { renderContent } from "@/lib/renderContent";
 
 interface Post {
   _id: string;
@@ -60,24 +61,6 @@ function HashtagPage() {
 
   if (isPending) return null;
 
-  const renderContent = (content: string) => {
-    return content.split(/(\s+)/).map((part, i) => {
-      if (part.startsWith("#")) {
-        const tag = part.slice(1);
-        return (
-          <Link
-            key={i}
-            href={`/hashtags#${tag}`}
-            className="text-primary hover:underline font-bold decoration-2 underline-offset-4"
-          >
-            {part}
-          </Link>
-        );
-      }
-      return part;
-    });
-  };
-
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
       {/* Sidebar (Simple version) */}
@@ -124,7 +107,7 @@ function HashtagPage() {
                       )}
                       <span className="text-on-surface-variant/40 font-body text-sm">· {new Date(post.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content)}</div>
+                    <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content, post.author)}</div>
                   </div>
                 </article>
               ))
