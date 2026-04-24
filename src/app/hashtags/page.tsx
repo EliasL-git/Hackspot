@@ -89,6 +89,12 @@ function HashtagPage() {
               <span className="material-symbols-outlined">arrow_back</span>
               <span>Back to Home</span>
             </Link>
+            {session && (
+              <Link className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg" href="/settings">
+                <span className="material-symbols-outlined">settings</span>
+                <span>Settings</span>
+              </Link>
+            )}
           </nav>
         </div>
       </aside>
