@@ -38,11 +38,15 @@ const server = http.createServer(async (req, res) => {
         return res.end("Hackspot S3 Proxy is running. Request a valid file path to view media.");
     }
 
-    // Remove leading slash to get the exact S3 key
-    const key = cleanPath.substring(1);
+    // Remove leading slash
+    let key = cleanPath.substring(1);
+
+    // If the path accidentally includes the bucket name (e.g. from forcePathStyle URLs), strip it
+    if (key.startsWith(`${bucket}/`)) {
+        key = key.substring(bucket.length + 1);
+    }
 
     // Security & Bot filtering: Only serve files from the uploads/ directory
-    // This prevents vulnerability scanners from spamming S3 with requests for .env, .git, etc.
     if (!key.startsWith('uploads/')) {
         res.writeHead(404);
         return res.end("Not found");
