@@ -9,6 +9,10 @@ export interface IPost extends Document {
     slackId?: string;
     verificationStatus?: string;
     tags?: string[];
+    equippedTag?: string;
+    githubStats?: {
+      totalLines: number;
+    };
   };
   hashtags: string[];
   likes: string[];
@@ -35,6 +39,10 @@ const PostSchema: Schema = new Schema({
     slackId: { type: String },
     verificationStatus: { type: String },
     tags: [{ type: String }],
+    equippedTag: { type: String },
+    githubStats: {
+      totalLines: { type: Number }
+    }
   },
   hashtags: [{ type: String }],
   likes: [{ type: String, default: [] }],
