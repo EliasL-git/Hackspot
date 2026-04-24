@@ -34,13 +34,22 @@ export async function GET(req: Request) {
         },
       });
 
-      const command = new ListObjectsV2Command({
-        Bucket: process.env.AWS_S3_BUCKET_NAME || "hackspot-uploads",
-      });
-      
-      const response = await s3.send(command);
-      if (response.Contents) {
-        totalStorageBytes = response.Contents.reduce((acc, obj) => acc + (obj.Size || 0), 0);
+      let isTruncated = true;
+      let continuationToken: string | undefined = undefined;
+
+      while (isTruncated) {
+        const command = new ListObjectsV2Command({
+          Bucket: process.env.AWS_S3_BUCKET_NAME || "hackspot-uploads",
+          ContinuationToken: continuationToken,
+        });
+        
+        const response = await s3.send(command);
+        if (response.Contents) {
+          totalStorageBytes += response.Contents.reduce((acc, obj) => acc + (obj.Size || 0), 0);
+        }
+        
+        isTruncated = response.IsTruncated ?? false;
+        continuationToken = response.NextContinuationToken;
       }
     } catch (s3Error) {
       console.error("Failed to fetch S3 stats:", s3Error);
