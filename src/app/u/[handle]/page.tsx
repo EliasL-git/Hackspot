@@ -73,6 +73,10 @@ function PublicProfileContent() {
             <span className="material-symbols-outlined">person</span>
             <span>Profile</span>
           </Link>
+          <Link href="/settings" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
+            <span className="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </Link>
         </nav>
       </aside>
 
