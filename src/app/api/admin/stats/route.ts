@@ -4,7 +4,7 @@ import User from "@/models/User";
 import Post from "@/models/Post";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command, ListObjectsV2CommandInput } from "@aws-sdk/client-s3";
 
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -38,10 +38,11 @@ export async function GET(req: Request) {
       let continuationToken: string | undefined = undefined;
 
       while (isTruncated) {
-        const command = new ListObjectsV2Command({
+        const input: ListObjectsV2CommandInput = {
           Bucket: process.env.AWS_S3_BUCKET_NAME || "hackspot-uploads",
           ContinuationToken: continuationToken,
-        });
+        };
+        const command = new ListObjectsV2Command(input);
         
         const response = await s3.send(command);
         if (response.Contents) {
