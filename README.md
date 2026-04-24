@@ -42,6 +42,8 @@ AWS_S3_BUCKET_NAME=hackspot-uploads
 # Optional: For custom S3 providers (Cloudflare R2, MinIO, etc.)
 AWS_ENDPOINT_URL_S3=https://your-custom-endpoint.com
 AWS_FORCE_PATH_STYLE=false
+# Optional: Explicit public URL for serving files (e.g., CDN or custom domain)
+AWS_S3_PUBLIC_URL=https://storageperk.s3.fra.databucket.eu/hackspot-uploads
 ```
 
 3) Start dev server:

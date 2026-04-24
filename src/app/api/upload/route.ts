@@ -32,9 +32,13 @@ export async function POST(req: Request) {
 
         const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
         
-        // Construct the public URL based on whether a custom endpoint is used
+        // Construct the public URL
         let fileUrl;
-        if (process.env.AWS_ENDPOINT_URL_S3) {
+        if (process.env.AWS_S3_PUBLIC_URL) {
+            // Explicit public URL (e.g., CDN or custom endpoint like https://storageperk.s3.fra.databucket.eu)
+            const publicUrl = process.env.AWS_S3_PUBLIC_URL.replace(/\\/$/, '');
+            fileUrl = `${publicUrl}/${key}`;
+        } else if (process.env.AWS_ENDPOINT_URL_S3) {
             // For custom endpoints (like MinIO, R2, etc.)
             const endpoint = process.env.AWS_ENDPOINT_URL_S3.replace(/\\/$/, '');
             if (process.env.AWS_FORCE_PATH_STYLE === "true") {
