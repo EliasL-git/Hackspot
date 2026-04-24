@@ -14,31 +14,36 @@ const question = (query: string): Promise<string> =>
 async function promote() {
   await dbConnect();
   
-  console.log("--- Hackspot User Promotion Tool ---");
+  console.log("--- Hackspot Admin Promotion Tool ---");
   
-  const slackId = await question("Enter Username: ");
-  if (!slackId) {
-    console.log("Username is required.");
+  // Check if an email was passed as a command-line argument
+  const args = process.argv.slice(2);
+  let email = args[0];
+
+  if (!email) {
+    email = await question("Enter User Email to promote to Admin: ");
+  }
+  
+  if (!email) {
+    console.log("Email is required.");
     process.exit(1);
   }
 
-  const user = await User.findOne({ slackId });
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
   if (!user) {
-    console.log(`User with Username "${slackId}" not found in database.`);
+    console.log(`User with Email "${email}" not found in database.`);
     process.exit(1);
   }
 
-  console.log(`Found user: ${user.name} (@${user.slackId})`);
+  console.log(`Found user: ${user.name} (${user.email})`);
   console.log(`Current tags: ${user.tags?.join(', ') || 'none'}`);
   
-  const tagsInput = await question("Enter tags to SET (comma-separated, e.g. hackclubstaff,notable): ");
-  const newTags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
-
-  const confirm = await question(`Are you sure you want to set tags to [${newTags.join(', ')}]? (y/n): `);
+  const confirm = await question(`Are you sure you want to grant ADMIN access to ${user.name}? (y/n): `);
   
   if (confirm.toLowerCase() === 'y') {
-    await User.updateOne({ slackId }, { $set: { tags: newTags } });
-    console.log("✅ User promoted successfully!");
+    const newTags = Array.from(new Set([...(user.tags || []), 'admin']));
+    await User.updateOne({ email: email.toLowerCase().trim() }, { $set: { tags: newTags } });
+    console.log("✅ User promoted to ADMIN successfully!");
   } else {
     console.log("Operation cancelled.");
   }
