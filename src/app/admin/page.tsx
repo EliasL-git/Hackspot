@@ -673,4 +673,4 @@ function AdminPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(AdminPage), { ss: false });
+export default dynamic(() => Promise.resolve(AdminPage), { ssr: false });
