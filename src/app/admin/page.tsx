@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { UserTag } from "@/components/UserTag";
+import { MD5 } from "crypto-js";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 KB';
@@ -37,6 +38,14 @@ function AdminPage() {
   
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminPosts, setAdminPosts] = useState<any[]>([]);
+
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+  };
 
   useEffect(() => {
     if (session?.user) {
@@ -244,7 +253,7 @@ function AdminPage() {
                     <tr key={u._id} className="hover:bg-surface-container-high/50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <img src={u.image || `https://www.gravatar.com/avatar/?d=identicon`} className="w-8 h-8 rounded-full" alt="" />
+                          <img src={getAvatarUrl(u)} className="w-8 h-8 rounded-full" alt="" />
                           <div>
                             <div className="font-bold">{u.name}</div>
                             <div className="text-xs text-on-surface-variant">@{u.slackId || u.id.slice(-6)}</div>
@@ -395,7 +404,7 @@ function AdminPage() {
               <div className="font-bold">{session.user.name}</div>
               <div className="text-xs text-primary uppercase tracking-wider font-bold">Administrator</div>
             </div>
-            <img src={session.user.image || `https://www.gravatar.com/avatar/?d=identicon`} alt="Admin" className="w-10 h-10 rounded-full border-2 border-primary" />
+            <img src={getAvatarUrl(session.user)} alt="Admin" className="w-10 h-10 rounded-full border-2 border-primary" />
           </div>
         </header>
 
