@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
-import { X, Heart, MessageCircle, Repeat2, AtSign, Flag } from "lucide-react";
+import { X, Heart, MessageCircle, Repeat2, AtSign, Flag, Hand } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
@@ -74,6 +74,7 @@ function NotificationsPageContent() {
       case 'like': return <div className="p-2 bg-pink-500/10 rounded-full text-pink-500"><Heart className="w-5 h-5 fill-current" /></div>;
       case 'repost': return <div className="p-2 bg-green-500/10 rounded-full text-green-500"><Repeat2 className="w-5 h-5" /></div>;
       case 'report': return <div className="p-2 bg-error/10 rounded-full text-error"><Flag className="w-5 h-5" /></div>;
+      case 'welcome': return <div className="p-2 bg-primary/10 rounded-full text-primary"><Hand className="w-5 h-5" /></div>;
       default: return <div className="p-2 bg-surface-container rounded-full text-on-surface-variant"><MessageCircle className="w-5 h-5" /></div>;
     }
   };
@@ -135,40 +136,56 @@ function NotificationsPageContent() {
               <p className="text-sm">When people @mention you, it'll show up here.</p>
             </div>
           ) : (
-            notifications.map((notif) => (
-              <Link 
-                key={notif._id} 
-                href={`/post/${notif.post}`}
-                className={`flex gap-4 p-4 hover:bg-surface-container-low transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  {getNotificationIcon(notif.type)}
-                  <div className="w-0.5 flex-1 bg-outline-variant/20 rounded-full"></div>
-                </div>
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <img 
-                      src={getAvatarUrl(notif.sender)} 
-                      alt="" 
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="font-bold">{notif.sender.name}</span>
-                    <span className="text-on-surface-variant text-sm">
-                      {new Date(notif.createdAt).toLocaleDateString()}
-                    </span>
+            notifications.map((notif) => {
+              const content = (
+                <>
+                  <div className="flex flex-col items-center gap-2">
+                    {getNotificationIcon(notif.type)}
+                    <div className="w-0.5 flex-1 bg-outline-variant/20 rounded-full"></div>
                   </div>
-                  <p className="text-on-surface">
-                    {notif.type === 'mention' && "mentioned you in a post"}
-                    {notif.type === 'like' && "liked your post"}
-                    {notif.type === 'repost' && "reposted your activity"}
-                    {notif.type === 'report' && "reported a post (Admin Alert)"}
-                  </p>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src={getAvatarUrl(notif.sender)} 
+                        alt="" 
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <span className="font-bold">{notif.sender.name}</span>
+                      <span className="text-on-surface-variant text-sm">
+                        {new Date(notif.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-on-surface whitespace-pre-wrap">
+                      {notif.type === 'welcome' && notif.message}
+                      {notif.type === 'mention' && "mentioned you in a post"}
+                      {notif.type === 'like' && "liked your post"}
+                      {notif.type === 'repost' && "reposted your activity"}
+                      {notif.type === 'report' && "reported a post (Admin Alert)"}
+                    </p>
+                  </div>
+                  {!notif.read && (
+                    <div className="w-2 h-2 rounded-full bg-primary self-center"></div>
+                  )}
+                </>
+              );
+
+              return notif.post ? (
+                <Link 
+                  key={notif._id} 
+                  href={`/post/${notif.post}`}
+                  className={`flex gap-4 p-4 hover:bg-surface-container-low transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div 
+                  key={notif._id} 
+                  className={`flex gap-4 p-4 hover:bg-surface-container-low transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
+                >
+                  {content}
                 </div>
-                {!notif.read && (
-                  <div className="w-2 h-2 rounded-full bg-primary self-center"></div>
-                )}
-              </Link>
-            ))
+              );
+            })
           )}
         </div>
       </main>

@@ -42,7 +42,8 @@ export async function GET(req: Request) {
       let authorImage = post.author?.image;
       let authorTags = post.author?.tags || [];
       let authorEquippedTag = post.author?.equippedTag;
-      let authorVerificationStatus = post.author?.verificationStatus;
+      // Use the user's current verification status from the DB, not the one saved on the post
+      let authorVerificationStatus = user?.verificationStatus || "unverified";
       let authorGithubStats = user?.githubStats || null;
 
       if (post.author?.slackId === 'orpheus') {
@@ -115,7 +116,9 @@ export async function POST(req: Request) {
         const helpMentions = welcomeContent.match(/@([\w\d]+)/g);
         if (helpMentions) {
           const uniqueHandles = Array.from(new Set(helpMentions.map((m: string) => m.slice(1).toLowerCase())));
-          const mentionedUsers = await User.find({ slackId: { $in: uniqueHandles } });
+          const mentionedUsers = await User.find({ 
+            slackId: { $in: uniqueHandles } 
+          });
 
           for (const recipient of mentionedUsers) {
             if (recipient.id === orpheus.id) continue;
@@ -169,7 +172,7 @@ export async function POST(req: Request) {
         name: session.user.name,
         image: session.user.image,
         slackId: (session.user as any).slackId || "",
-        verificationStatus: (session.user as any).verificationStatus || "false",
+        verificationStatus: currentUser?.verificationStatus || "unverified",
         tags: currentUser?.tags || [],
         equippedTag: currentUser?.equippedTag || (currentUser?.tags && currentUser?.tags[0]),
         githubStats: currentUser?.githubStats || null,
