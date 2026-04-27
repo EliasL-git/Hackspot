@@ -169,6 +169,40 @@ function AdminPage() {
     }
   };
 
+  const handleVerifyUser = async (userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'verified' ? 'unverified' : 'verified';
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/verify`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verificationStatus: newStatus })
+      });
+      
+      if (res.ok) {
+        setAdminUsers(prev => prev.map(u => u._id === userId ? { ...u, verificationStatus: newStatus } : u));
+      } else {
+        setModalConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Failed to update verification status.",
+          onConfirm: closeModal,
+          confirmText: "Close",
+          isDanger: true
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      setModalConfig({
+        isOpen: true,
+        title: "Error",
+        message: "An error occurred while updating verification status.",
+        onConfirm: closeModal,
+        confirmText: "Close",
+        isDanger: true
+      });
+    }
+  };
+
   const handleDeletePost = (postId: string) => {
     setModalConfig({
       isOpen: true,
@@ -299,6 +333,7 @@ function AdminPage() {
                   <tr className="bg-surface-container-low text-on-surface-variant text-sm uppercase tracking-wider">
                     <th className="p-4 font-bold">User</th>
                     <th className="p-4 font-bold">Email</th>
+                    <th className="p-4 font-bold text-center">Status</th>
                     <th className="p-4 font-bold">Tags</th>
                     <th className="p-4 font-bold text-right">Actions</th>
                   </tr>
@@ -316,6 +351,18 @@ function AdminPage() {
                         </div>
                       </td>
                       <td className="p-4 text-sm text-on-surface-variant">{u.email}</td>
+                      <td className="p-4 text-center">
+                        <button 
+                          onClick={() => handleVerifyUser(u._id, u.verificationStatus)}
+                          className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-bold transition-colors ${
+                            u.verificationStatus === 'verified' 
+                              ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                              : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-highest/80'
+                          }`}
+                        >
+                          {u.verificationStatus === 'verified' ? 'Verified' : 'Unverified'}
+                        </button>
+                      </td>
                       <td className="p-4">
                         <div className="flex flex-wrap gap-1">
                           {u.tags?.map((t: string) => <UserTag key={t} tag={t} />)}
