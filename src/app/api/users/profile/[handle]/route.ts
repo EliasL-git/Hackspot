@@ -25,11 +25,17 @@ export async function GET(
       .limit(20)
       .lean();
 
+    // Get posts they voted on
+    const votedPosts = await Post.find({ "poll.options.votes": user.id || user._id.toString() })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
     // Generate Gravatar
     const gravatar = `https://www.gravatar.com/avatar/${md5(user.email.toLowerCase().trim())}?d=identicon&s=200`;
 
     // Enrich posts with the user's latest data (like githubStats)
-    const enrichedPosts = posts.map((post: any) => ({
+    const enrichPosts = (postList: any[]) => postList.map((post: any) => ({
       ...post,
       author: {
         ...post.author,
@@ -46,7 +52,8 @@ export async function GET(
         ...user,
         image: user.image || gravatar
       },
-      posts: enrichedPosts
+      posts: enrichPosts(posts),
+      votedPosts: enrichPosts(votedPosts)
     });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch user profile" }, { status: 500 });

@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
+import AuditLog from "@/models/AuditLog";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import mongoose from "mongoose";
@@ -36,6 +37,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     
     post.reports = [];
     await post.save();
+
+    await AuditLog.create({
+      adminId: adminUser.id,
+      adminName: adminUser.name,
+      action: 'DISMISS_REPORT',
+      targetId: id,
+      targetType: 'Post',
+      details: { reporterCount: reporters.length }
+    });
 
     if (reporters.length > 0) {
       const orpheus = await User.findOne({ slackId: 'orpheus' });

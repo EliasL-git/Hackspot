@@ -10,20 +10,16 @@ import { MD5 } from "crypto-js";
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 KB';
   
-  // If bytes is less than 1KB, force it to show as a fraction of KB
   if (bytes < 1024) {
     return `${(bytes / 1024).toFixed(decimals)} KB`;
   }
   
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  // Start from KB instead of Bytes
   const sizes = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   
-  // Adjust the index calculation to account for starting at KB
   const i = Math.floor(Math.log(bytes) / Math.log(k)) - 1;
   
-  // If calculation goes out of bounds (e.g. negative), fallback to KB
   if (i < 0) return `${(bytes / 1024).toFixed(dm)} KB`;
   
   return `${parseFloat((bytes / Math.pow(k, i + 1)).toFixed(dm))} ${sizes[i]}`;
@@ -38,6 +34,7 @@ function AdminPage() {
   
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminPosts, setAdminPosts] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   // Custom Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -96,6 +93,7 @@ function AdminPage() {
     if (isAdmin) {
       if (activeTab === 'users' && adminUsers.length === 0) fetchUsers();
       if (activeTab === 'posts' && adminPosts.length === 0) fetchPosts();
+      if (activeTab === 'audit' && auditLogs.length === 0) fetchAuditLogs();
     }
   }, [activeTab, isAdmin]);
 
@@ -126,6 +124,15 @@ function AdminPage() {
     try {
       const res = await fetch('/api/admin/posts');
       if (res.ok) setAdminPosts(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/audit');
+      if (res.ok) setAuditLogs(await res.json());
     } catch (e) {
       console.error(e);
     }
@@ -498,6 +505,60 @@ function AdminPage() {
             </div>
           </div>
         );
+      case 'audit':
+        return (
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 overflow-hidden">
+            <div className="p-6 border-b border-outline-variant/15 flex justify-between items-center">
+              <h2 className="text-xl font-bold font-headline">Audit Logs</h2>
+              <button onClick={fetchAuditLogs} className="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span className="material-symbols-outlined">refresh</span>
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low text-on-surface-variant text-sm uppercase tracking-wider">
+                    <th className="p-4 font-bold">Date</th>
+                    <th className="p-4 font-bold">Admin</th>
+                    <th className="p-4 font-bold">Action</th>
+                    <th className="p-4 font-bold">Target</th>
+                    <th className="p-4 font-bold">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {auditLogs.map(log => (
+                    <tr key={log._id} className="hover:bg-surface-container-high/50 transition-colors">
+                      <td className="p-4 text-sm text-on-surface-variant">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold">{log.adminName}</div>
+                      </td>
+                      <td className="p-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container-highest text-on-surface">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm">
+                        {log.targetType}: <span className="font-mono text-xs">{log.targetId.slice(-6)}</span>
+                      </td>
+                      <td className="p-4 text-sm max-w-xs truncate text-on-surface-variant">
+                        {JSON.stringify(log.details)}
+                      </td>
+                    </tr>
+                  ))}
+                  {auditLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-on-surface-variant italic">
+                        No audit logs found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
       case 'settings':
         return (
           <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
@@ -571,6 +632,13 @@ function AdminPage() {
             {stats.reportedPosts > 0 && (
               <span className="ml-auto bg-error text-white text-xs px-2 py-0.5 rounded-full">{stats.reportedPosts}</span>
             )}
+          </button>
+          <button 
+            onClick={() => setActiveTab('audit')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'audit' ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+          >
+            <span className="material-symbols-outlined">history</span>
+            Audit Logs
           </button>
           <button 
             onClick={() => setActiveTab('settings')}

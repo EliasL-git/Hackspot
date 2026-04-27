@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
+import AuditLog from "@/models/AuditLog";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import mongoose from "mongoose";
@@ -35,6 +36,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
     
     await User.findByIdAndUpdate(id, update);
+
+    await AuditLog.create({
+      adminId: adminUser.id,
+      adminName: adminUser.name,
+      action: 'UPDATE_VERIFICATION',
+      targetId: id,
+      targetType: 'User',
+      details: { verificationStatus }
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to update verification status" }, { status: 500 });

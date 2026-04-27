@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import User from "@/models/User";
 import Notification from "@/models/Notification";
+import AuditLog from "@/models/AuditLog";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import mongoose from "mongoose";
@@ -31,6 +32,15 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     const reporters = post.reports || [];
     await Post.findByIdAndDelete(id);
+
+    await AuditLog.create({
+      adminId: adminUser.id,
+      adminName: adminUser.name,
+      action: 'DELETE_POST',
+      targetId: id,
+      targetType: 'Post',
+      details: { authorId: post.author.id, contentExcerpt: post.content?.substring(0, 50) }
+    });
 
     if (reporters.length > 0) {
       const orpheus = await User.findOne({ slackId: 'orpheus' });
