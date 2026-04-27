@@ -5,6 +5,8 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Notification from "@/models/Notification";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const session = await auth.api.getSession({
     headers: await headers()
@@ -29,7 +31,7 @@ export async function GET(req: Request) {
         
         if (orpheus) {
             // Create a welcome notification from Orpheus
-            const welcomeContent = `Welcome to Hackspot, @${user.slackId || user.name.replace(/\s+/g, '').toLowerCase()}! 🦖 So glad to have you here. Try typing @ to mention someone, # for hashtags, or $ for commands!`;
+            const welcomeContent = `Welcome to Hackspot, @@${user.slackId || user.name.replace(/\s+/g, '').toLowerCase()}! 🦖 So glad to have you here. Try typing @ to mention someone, # for hashtags, or $ for commands!`;
             
             await Notification.create({
               recipient: user.id,
