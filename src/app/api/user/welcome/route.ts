@@ -28,7 +28,7 @@ export async function GET(req: Request) {
         const orpheus = await User.findOne({ slackId: 'orpheus' });
         
         if (orpheus) {
-            // Create a welcome notification from Orpheus mentioning the new user
+            // Create a welcome notification from Orpheus
             const welcomeContent = `Welcome to Hackspot, @${user.slackId || user.name.replace(/\s+/g, '').toLowerCase()}! 🦖 So glad to have you here. Try typing @ to mention someone, # for hashtags, or $ for commands!`;
             
             await Notification.create({
@@ -38,13 +38,8 @@ export async function GET(req: Request) {
                 name: orpheus.name,
                 image: orpheus.image,
               },
-              type: 'mention',
-              // We don't have a post ID for a direct message, but the notification schema might require it.
-              // If post is required, we might need to adjust the Notification schema or create a dummy post.
-              // Assuming 'post' is optional or we can leave it out for a direct welcome message.
-              // If it fails, we might need to create a post anyway, but let's try without it or with a special flag.
-              // Actually, let's just send the notification.
-              message: welcomeContent // We might need to add 'message' to Notification schema if it doesn't exist, or just use the type 'mention' to trigger a generic welcome.
+              type: 'welcome',
+              message: welcomeContent
             });
 
             // Mark user as welcomed
