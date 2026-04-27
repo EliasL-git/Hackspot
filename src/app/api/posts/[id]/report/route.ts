@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
+import User from "@/models/User";
+import Notification from "@/models/Notification";
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 
@@ -32,6 +34,27 @@ export async function POST(
       post.reports = post.reports || [];
       post.reports.push(userId);
       await post.save();
+      
+      // Find all admins and owners
+      const admins = await User.find({ 
+        tags: { $in: ['admin', 'owner'] } 
+      }).lean();
+      
+      // Create a notification for each admin
+      const notifications = admins.map(admin => ({
+        recipient: admin.id || (admin as any)._id.toString(),
+        sender: {
+          id: session.user.id,
+          name: session.user.name,
+          image: session.user.image,
+        },
+        type: 'report',
+        post: post._id,
+      }));
+      
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
     }
 
     return NextResponse.json({ success: true, message: "Post reported successfully" });
