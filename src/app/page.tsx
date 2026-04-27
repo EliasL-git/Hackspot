@@ -9,6 +9,18 @@ import { MD5 } from "crypto-js";
 import { UserTag } from "@/components/UserTag";
 import { renderContent } from "@/lib/renderContent";
 
+interface PollOption {
+  _id?: string;
+  text: string;
+  votes: string[];
+}
+
+interface Poll {
+  question: string;
+  options: PollOption[];
+  endDate?: string;
+}
+
 interface Post {
   _id: string;
   content: string;
@@ -25,6 +37,7 @@ interface Post {
     };
   };
   media?: { url: string; type: string }[];
+  poll?: Poll;
   ogData?: {
     title?: string;
     description?: string;
@@ -53,6 +66,11 @@ function HomePage() {
   const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Poll state
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
 
   // Custom Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -290,6 +308,39 @@ function HomePage() {
     });
   };
 
+  const handleVote = async (postId: string, optionIndex: number) => {
+    if (!session) {
+      setModalConfig({
+        isOpen: true,
+        title: "Sign In Required",
+        message: "You must be logged in to vote on polls!",
+        onConfirm: closeModal,
+        confirmText: "Got it"
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optionIndex })
+      });
+
+      if (res.ok) {
+        const { poll } = await res.json();
+        setPosts(prev => prev.map(p => {
+          if (p._id === postId) {
+            return { ...p, poll };
+          }
+          return p;
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handlePostChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setNewPost(value);
@@ -403,20 +454,54 @@ function HomePage() {
     }
   };
 
+  const handleAddPollOption = () => {
+    if (pollOptions.length < 4) {
+      setPollOptions([...pollOptions, ""]);
+    }
+  };
+
+  const handleRemovePollOption = (index: number) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handlePollOptionChange = (index: number, value: string) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newPost.trim() && mediaFiles.length === 0) || !session) return;
+    
+    let pollData = undefined;
+    if (showPollCreator && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2) {
+      pollData = {
+        question: pollQuestion.trim(),
+        options: pollOptions.filter(o => o.trim()).map(text => ({ text, votes: [] }))
+      };
+    }
+
+    if ((!newPost.trim() && mediaFiles.length === 0 && !pollData) || !session) return;
 
     setLoading(true);
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newPost, media: mediaFiles }),
+        body: JSON.stringify({ 
+          content: newPost, 
+          media: mediaFiles,
+          poll: pollData
+        }),
       });
       if (res.ok) {
         setNewPost("");
         setMediaFiles([]);
+        setShowPollCreator(false);
+        setPollQuestion("");
+        setPollOptions(["", ""]);
         fetchData();
       }
     } catch (error: any) {
@@ -614,6 +699,45 @@ function HomePage() {
                 </div>
               )}
 
+              {showPollCreator && (
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/15 mt-2">
+                  <input
+                    type="text"
+                    placeholder="Ask a question..."
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                    className="w-full bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 text-lg font-bold mb-4 pb-2"
+                  />
+                  <div className="space-y-2">
+                    {pollOptions.map((option, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          placeholder={`Option ${i + 1}`}
+                          value={option}
+                          onChange={(e) => handlePollOptionChange(i, e.target.value)}
+                          className="flex-1 bg-surface-container border border-outline-variant/30 rounded-lg px-3 py-2 focus:ring-1 focus:ring-primary"
+                        />
+                        {pollOptions.length > 2 && (
+                          <button type="button" onClick={() => handleRemovePollOption(i)} className="text-on-surface-variant hover:text-error">
+                            <span className="material-symbols-outlined">close</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {pollOptions.length < 4 && (
+                    <button
+                      type="button"
+                      onClick={handleAddPollOption}
+                      className="mt-3 text-primary font-bold text-sm hover:underline flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span> Add Option
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between items-center pt-4 border-t border-outline-variant/15 mt-2">
                 <div className="flex gap-2 text-primary">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
@@ -623,7 +747,7 @@ function HomePage() {
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
                     <span className="material-symbols-outlined text-[24px]">gif_box</span>
                   </button>
-                  <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
+                  <button type="button" onClick={() => setShowPollCreator(!showPollCreator)} className={`p-2.5 rounded-full transition-colors active:scale-95 ${showPollCreator ? 'bg-primary/20' : 'hover:bg-primary/10'}`}>
                     <span className="material-symbols-outlined text-[24px]">poll</span>
                   </button>
                   <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
@@ -632,7 +756,7 @@ function HomePage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading || uploading || (!newPost.trim() && mediaFiles.length === 0)}
+                  disabled={loading || uploading || ((!newPost.trim() && mediaFiles.length === 0) && (!showPollCreator || !pollQuestion.trim()))}
                   className="bg-primary hover:brightness-110 text-on-primary-fixed px-10 py-3 rounded-full font-headline font-bold text-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 active:scale-95"
                 >
                   {loading || uploading ? "Posting..." : "Post"}
@@ -710,6 +834,52 @@ function HomePage() {
                       const src = m.url.startsWith('http') ? m.url : `https://${m.url}`;
                       return <img key={i} src={src} alt="Post media" className="rounded-xl max-h-96 object-cover w-full" />
                     })}
+                  </div>
+                )}
+
+                {/* Poll */}
+                {post.poll && (
+                  <div className="mt-4 mb-4 bg-surface-container-low rounded-xl border border-outline-variant/15 p-4">
+                    <h4 className="font-bold font-headline mb-3 text-lg">{post.poll.question}</h4>
+                    <div className="space-y-2">
+                      {post.poll.options.map((option, index) => {
+                        const totalVotes = post.poll!.options.reduce((sum, opt) => sum + opt.votes.length, 0);
+                        const percentage = totalVotes > 0 ? Math.round((option.votes.length / totalVotes) * 100) : 0;
+                        const hasVoted = session && option.votes.includes(session.user.id);
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(post._id, index);
+                            }}
+                            className={`w-full relative overflow-hidden rounded-lg border transition-all ${
+                              hasVoted 
+                                ? 'border-primary bg-primary/5' 
+                                : 'border-outline-variant/30 hover:bg-surface-container-high'
+                            }`}
+                          >
+                            <div 
+                              className={`absolute top-0 left-0 bottom-0 ${hasVoted ? 'bg-primary/20' : 'bg-surface-container-highest/50'} transition-all duration-500`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                            <div className="relative flex justify-between items-center px-4 py-3 z-10">
+                              <span className={`font-bold ${hasVoted ? 'text-primary' : 'text-on-surface'}`}>
+                                {option.text}
+                              </span>
+                              <span className="text-sm font-medium text-on-surface-variant">
+                                {percentage}%
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 text-xs text-on-surface-variant/60 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">how_to_vote</span>
+                      {post.poll.options.reduce((sum, opt) => sum + opt.votes.length, 0)} votes
+                    </div>
                   </div>
                 )}
 

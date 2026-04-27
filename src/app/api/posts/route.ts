@@ -88,15 +88,15 @@ export async function POST(req: Request) {
 
   await dbConnect();
   try {
-    const { content, media } = await req.json();
-    if (!content && (!media || media.length === 0)) {
-      return NextResponse.json({ error: "Content or media is required" }, { status: 400 });
+    const { content, media, poll } = await req.json();
+    if (!content && (!media || media.length === 0) && !poll) {
+      return NextResponse.json({ error: "Content, media, or poll is required" }, { status: 400 });
     }
 
     if (content && content.trim() === "$help") {
       const orpheus = await User.findOne({ slackId: 'orpheus' });
       if (orpheus) {
-        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦕 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
+        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦖 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
 
         const welcomePost = await Post.create({
           content: welcomeContent,
@@ -162,6 +162,7 @@ export async function POST(req: Request) {
     const post = await Post.create({
       content: content || "",
       media: media || [],
+      poll: poll || undefined,
       ogData,
       author: {
         id: session.user.id,

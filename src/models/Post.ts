@@ -1,5 +1,16 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IPollOption {
+  text: string;
+  votes: string[]; // Array of user IDs who voted for this option
+}
+
+export interface IPoll {
+  question: string;
+  options: IPollOption[];
+  endDate?: Date;
+}
+
 export interface IPost extends Document {
   content: string;
   author: {
@@ -17,10 +28,11 @@ export interface IPost extends Document {
   hashtags: string[];
   likes: string[];
   reposts: string[];
-  reports: string[]; // Array of user IDs who reported this post
+  reports?: string[]; // Array of user IDs who reported this post
   isRepost: boolean;
   originalPost?: mongoose.Types.ObjectId;
   media?: { url: string; type: string }[];
+  poll?: IPoll;
   ogData?: {
     title?: string;
     description?: string;
@@ -29,6 +41,17 @@ export interface IPost extends Document {
   };
   createdAt: Date;
 }
+
+const PollOptionSchema = new Schema({
+  text: { type: String, required: true },
+  votes: [{ type: String, default: [] }]
+});
+
+const PollSchema = new Schema({
+  question: { type: String, required: true },
+  options: [PollOptionSchema],
+  endDate: { type: Date }
+});
 
 const PostSchema: Schema = new Schema({
   content: { type: String, required: false },
@@ -54,6 +77,7 @@ const PostSchema: Schema = new Schema({
     url: String,
     type: { type: String, enum: ['image', 'gif', 'video'] }
   }],
+  poll: PollSchema,
   ogData: {
     title: String,
     description: String,
