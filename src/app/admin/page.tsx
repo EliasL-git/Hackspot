@@ -410,8 +410,8 @@ function AdminPage() {
                           onClick={() => handleVerifyUser(u._id, u.verificationStatus)}
                           className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-bold transition-colors ${
                             u.verificationStatus === 'verified' 
-                              ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                              : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-highest/80'
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                            : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-highest/80'
                           }`}
                         >
                           {u.verificationStatus === 'verified' ? 'Verified' : 'Unverified'}
@@ -557,13 +557,6 @@ function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="bg-surface-container rounded-2xl border border-outline-variant/15 p-6">
-            <h2 className="text-xl font-bold font-headline mb-4">System Settings</h2>
-            <p className="text-on-surface-variant">Global app configuration will appear here in a future update.</p>
           </div>
         );
       default:
