@@ -1,20 +1,31 @@
-aW1wb3J0IHsgTmV4dFJlc3BvbnNlIH0gZnJvbSAibmV4dC9zZXJ2ZXIiOwpp
-bXBvcnQgZGJDb25uZWN0IGZyb20gIkAvbGliL2RiIjsKaW1wb3J0IFBvc3Qg
-ZnJvbSAiQC9tb2RlbHMvUG9zdCI7CgpleHBvcnQgY29uc3QgZHluYW1pYyA9
-ICdmb3JjZS1keW5hbWljJzsKCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBHRVQo
-KSB7CiAgdHJ5IHsKICAgIGF3YWl0IGRiQ29ubmVjdCgpOwogICAgCiAgICAv
-LyBBZ2dyZWdhdGUgaGFzaHRhZ3MgZnJvbSB0aGUgbGFzdCA3IGRheXMKICAg
-IGNvbnN0IHNldmVuRGF5c0FnbyA9IG5ldyBEYXRlKCk7CiAgICBzZXZlbkRh
-eXNBZ28uc2V0RGF0ZShzZXZlbkRheXNBZ28uZ2V0RGF0ZSgpIC0gNyk7Cgog
-ICAgY29uc3QgdHJlbmRzID0gYXdhaXQgUG9zdC5hZ2dyZWdhdGUoWwogICAg
-ICB7ICRtYXRjaDogeyBjcmVhdGVkQXQ6IHsgJGd0ZTogc2V2ZW5EYXlzQWdv
-IH0gfSB9LAogICAgICB7ICR1bndpbmQ6ICIkaGFzaHRhZ3MiIH0sCiAgICAg
-IHsgJGdyb3VwOiB7IF9pZDogIiRoYXNodGFncyIsIGNvdW50OiB7ICRzdW06
-IDEgfSB9IH0sCiAgICAgIHsgJHNvcnQ6IHsgY291bnQ6IC0xIH0gfSwKICAg
-ICAgeyAkbGltaXQ6IDEwIH0KICAgIF0pOwoKICAgIHJldHVybiBOZXh0UmVz
-cG9uc2UuanNvbih0cmVuZHMubWFwKHQgPT4gKHsKICAgICAgbmFtZTogdC5f
-aWQsCiAgICAgIGNvdW50OiB0LmNvdW50CiAgICB9KSkpOwogIH0gY2F0Y2gg
-KGVycm9yKSB7CiAgICBjb25zb2xlLmVycm9yKCJUcmVuZHMgQVBJIEVycm9y
-OiIsIGVycm9yKTsKICAgIHJldHVybiBOZXh0UmVzcG9uc2UuanNvbih7IGVy
-cm9yOiAiRmFpbGVkIHRvIGZldGNoIHRyZW5kcyIgfSwgeyBzdGF0dXM6IDUw
-MCB9KTsKICB9Cn0KCg==
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/db";
+import Post from "@/models/Post";
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  try {
+    await dbConnect();
+    
+    // Aggregate hashtags from the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trends = await Post.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $unwind: "$hashtags" },
+      { $group: { _id: "$hashtags", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    return NextResponse.json(trends.map(t => ({
+      name: t._id,
+      count: t.count
+    })));
+  } catch (error) {
+    console.error("Trends API Error:", error);
+    return NextResponse.json({ error: "Failed to fetch trends" }, { status: 500 });
+  }
+}
