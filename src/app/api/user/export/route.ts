@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     }
 
     // Get all posts by the user
-    const posts = await Post.find({ "author.id": user.id || user._id.toString() }).lean();
+    const posts = await Post.find({ "author.id": user.id || (user._id ? user._id.toString() : userId) }).lean();
 
     const exportData = {
       user: {
@@ -64,7 +64,7 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="hackspot-export-${user.slackId || user.id || user._id}.json"`,
+        "Content-Disposition": `attachment; filename="hackspot-export-${user.slackId || user.id || user._id || 'data'}.json"`,
       },
     });
   } catch (error) {
