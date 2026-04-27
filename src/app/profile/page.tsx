@@ -297,7 +297,7 @@ function ProfilePageContent() {
       )}
 
       {/* Main Layout */}
-      <aside className="hidden lg:flex flex-col h-screen sticky top-0 p-6 space-y-2 bg-surface w-72 border-r border-outline-variant/15">
+      <aside className="hidden lg:flex flex-col h-screen sticky top-0 p-6 space-y-2 bg-surface w-72 border-r border-outline-variant/15 flex-shrink-0">
         <Link href="/" className="text-[#ec3750] font-black text-3xl mb-8 font-headline">Hackspot</Link>
         <nav className="flex-1 space-y-1">
           <Link href="/" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
@@ -321,7 +321,7 @@ function ProfilePageContent() {
 
       {/* Main Profile Area */}
       <main className="flex-1 border-r border-outline-variant/15 min-w-0">
-        <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md px-4 py-2 flex items-center gap-8">
+        <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md px-4 py-2 flex items-center gap-8 border-b border-outline-variant/10">
           <Link href="/" className="p-2 hover:bg-surface-container-highest rounded-full transition-colors">
             <span className="material-symbols-outlined">arrow_back</span>
           </Link>
