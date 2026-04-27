@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
 import { UserTag, TAG_METADATA } from "@/components/UserTag";
 import { renderContent } from "@/lib/renderContent";
+import { NotificationBadge } from "@/components/NotificationBadge";
 
 function ProfilePageContent() {
   const { data: session, isPending } = authClient.useSession();
@@ -304,9 +305,10 @@ function ProfilePageContent() {
             <span className="material-symbols-outlined">home</span>
             <span>Home</span>
           </Link>
-          <Link href="/notifications" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg">
+          <Link href="/notifications" className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg relative">
             <span className="material-symbols-outlined">notifications</span>
             <span>Notifications</span>
+            <NotificationBadge />
           </Link>
           <Link href="/profile" className="text-primary font-bold flex items-center gap-4 py-3 px-4 rounded-lg bg-white/5 font-headline text-lg">
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
