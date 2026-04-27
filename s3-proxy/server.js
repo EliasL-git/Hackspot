@@ -41,13 +41,6 @@ const server = http.createServer(async (req, res) => {
     // Remove leading slash
     let key = cleanPath.substring(1);
 
-    // Decode URI components in the key since S3 keys might have spaces or special characters encoded in the URL
-    try {
-        key = decodeURIComponent(key);
-    } catch (e) {
-        console.error("Error decoding URI component:", e);
-    }
-
     // If the path accidentally includes the bucket name (e.g. from forcePathStyle URLs), strip it
     if (key.startsWith(`${bucket}/`)) {
         key = key.substring(bucket.length + 1);
@@ -58,6 +51,10 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(404);
         return res.end("Not found");
     }
+
+    // DO NOT decode URI components in the key. The AWS SDK v3 automatically encodes the key when creating the signature.
+    // If we decode it here, the SDK will re-encode it, leading to a double-encoded URL in the signature, which causes SignatureDoesNotMatch.
+    // We should pass the exact key as it was requested by the client (which is already encoded).
 
     try {
         const command = new GetObjectCommand({
