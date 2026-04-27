@@ -179,7 +179,15 @@ function AdminPage() {
       });
       
       if (res.ok) {
-        setAdminUsers(prev => prev.map(u => u._id === userId ? { ...u, verificationStatus: newStatus } : u));
+        setAdminUsers(prev => prev.map(u => {
+          if (u._id === userId) {
+            const newTags = newStatus === 'verified' 
+              ? Array.from(new Set([...(u.tags || []), 'verified']))
+              : (u.tags || []).filter((t: string) => t !== 'verified');
+            return { ...u, verificationStatus: newStatus, tags: newTags };
+          }
+          return u;
+        }));
       } else {
         setModalConfig({
           isOpen: true,
@@ -203,11 +211,50 @@ function AdminPage() {
     }
   };
 
+  const handleDismissReport = (postId: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Dismiss Report",
+      message: "Are you sure you want to dismiss the reports for this post? This will clear the reports and notify the reporters.",
+      confirmText: "Dismiss",
+      isDanger: false,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/admin/posts/${postId}/dismiss`, { method: 'POST' });
+          if (res.ok) {
+            setAdminPosts(prev => prev.map(p => p._id === postId ? { ...p, reports: [] } : p));
+            setStats(prev => ({ ...prev, reportedPosts: Math.max(0, prev.reportedPosts - 1) }));
+          } else {
+            setModalConfig({
+              isOpen: true,
+              title: "Error",
+              message: "Failed to dismiss report.",
+              onConfirm: closeModal,
+              confirmText: "Close",
+              isDanger: true
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          setModalConfig({
+            isOpen: true,
+            title: "Error",
+            message: "An error occurred while dismissing the report.",
+            onConfirm: closeModal,
+            confirmText: "Close",
+            isDanger: true
+          });
+        }
+      }
+    });
+  };
+
   const handleDeletePost = (postId: string) => {
     setModalConfig({
       isOpen: true,
       title: "Delete Post",
-      message: "Are you sure you want to permanently delete this post? This action cannot be undone.",
+      message: "Are you sure you want to permanently delete this post? This action cannot be undone. If there are reports, reporters will be notified.",
       confirmText: "Delete",
       isDanger: true,
       onConfirm: async () => {
@@ -427,12 +474,22 @@ function AdminPage() {
                         {new Date(p.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-right">
-                        <button 
-                          onClick={() => handleDeletePost(p._id)}
-                          className="px-3 py-1.5 bg-error/10 text-error hover:bg-error/20 rounded-lg text-sm font-bold transition-colors"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          {(p.reports?.length > 0) && (
+                            <button 
+                              onClick={() => handleDismissReport(p._id)}
+                              className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-bold transition-colors"
+                            >
+                              Dismiss
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleDeletePost(p._id)}
+                            className="px-3 py-1.5 bg-error/10 text-error hover:bg-error/20 rounded-lg text-sm font-bold transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -548,4 +605,4 @@ function AdminPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(AdminPage), { ssr: false });
+export default dynamic(() => Promise.resolve(AdminPage), { ss: false });
