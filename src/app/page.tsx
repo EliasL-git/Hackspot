@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { authClient } from "@/lib/auth-client";
-import { LogIn, LogOut, Send, User, UserCircle } from "lucide-react";
+import { LogIn, LogOut, Send, User, UserCircle, PenLine } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
@@ -630,7 +630,8 @@ function HomePage() {
         </div>
         
         {session && (
-          <button className="w-full py-5 bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed shadow-lg shadow-primary/20 font-headline font-bold text-2xl rounded-full mb-4 hover:opacity-90 active:scale-95 transition-all">
+          <button className="w-full py-4 bg-primary text-on-primary-fixed shadow-md shadow-primary/20 font-headline font-bold text-xl rounded-full mb-4 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">
+            <PenLine className="w-5 h-5" />
             Post
           </button>
         )}
