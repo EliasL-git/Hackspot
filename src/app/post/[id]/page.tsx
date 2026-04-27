@@ -6,6 +6,7 @@ import { UserTag } from "@/components/UserTag";
 import Link from "next/link";
 import { renderContent } from "@/lib/renderContent";
 import { MD5 } from "crypto-js";
+import mongoose from "mongoose";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -13,6 +14,9 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   
   let post;
   try {
+    if (!mongoose.Types.ObjectId.isValid(resolvedParams.id)) {
+      return notFound();
+    }
     post = await Post.findById(resolvedParams.id).lean() as any;
   } catch (e) {
     return notFound();
