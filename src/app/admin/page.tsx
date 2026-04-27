@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { UserTag } from "@/components/UserTag";
+import { MD5 } from "crypto-js";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 KB';
@@ -37,6 +38,33 @@ function AdminPage() {
   
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminPosts, setAdminPosts] = useState<any[]>([]);
+
+  // Custom Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    isDanger?: boolean;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirm",
+    isDanger: false
+  });
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+  };
 
   useEffect(() => {
     if (session?.user) {
@@ -119,29 +147,99 @@ function AdminPage() {
       if (res.ok) {
         setAdminUsers(prev => prev.map(u => u._id === userId ? { ...u, tags: newTags } : u));
       } else {
-        alert("Failed to update tags");
+        setModalConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Failed to update tags.",
+          onConfirm: closeModal,
+          confirmText: "Close",
+          isDanger: true
+        });
       }
     } catch (e) {
       console.error(e);
-      alert("Error updating tags");
+      setModalConfig({
+        isOpen: true,
+        title: "Error",
+        message: "An error occurred while updating tags.",
+        onConfirm: closeModal,
+        confirmText: "Close",
+        isDanger: true
+      });
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
-    
+  const handleVerifyUser = async (userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'verified' ? 'unverified' : 'verified';
     try {
-      const res = await fetch(`/api/admin/posts/${postId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/users/${userId}/verify`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verificationStatus: newStatus })
+      });
+      
       if (res.ok) {
-        setAdminPosts(prev => prev.filter(p => p._id !== postId));
-        setStats(prev => ({ ...prev, posts: prev.posts - 1 }));
+        setAdminUsers(prev => prev.map(u => u._id === userId ? { ...u, verificationStatus: newStatus } : u));
       } else {
-        alert("Failed to delete post");
+        setModalConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Failed to update verification status.",
+          onConfirm: closeModal,
+          confirmText: "Close",
+          isDanger: true
+        });
       }
     } catch (e) {
       console.error(e);
-      alert("Error deleting post");
+      setModalConfig({
+        isOpen: true,
+        title: "Error",
+        message: "An error occurred while updating verification status.",
+        onConfirm: closeModal,
+        confirmText: "Close",
+        isDanger: true
+      });
     }
+  };
+
+  const handleDeletePost = (postId: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Post",
+      message: "Are you sure you want to permanently delete this post? This action cannot be undone.",
+      confirmText: "Delete",
+      isDanger: true,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/admin/posts/${postId}`, { method: 'DELETE' });
+          if (res.ok) {
+            setAdminPosts(prev => prev.filter(p => p._id !== postId));
+            setStats(prev => ({ ...prev, posts: prev.posts - 1 }));
+          } else {
+            setModalConfig({
+              isOpen: true,
+              title: "Error",
+              message: "Failed to delete post.",
+              onConfirm: closeModal,
+              confirmText: "Close",
+              isDanger: true
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          setModalConfig({
+            isOpen: true,
+            title: "Error",
+            message: "An error occurred while deleting the post.",
+            onConfirm: closeModal,
+            confirmText: "Close",
+            isDanger: true
+          });
+        }
+      }
+    });
   };
 
   if (isPending || loading) {
@@ -235,6 +333,7 @@ function AdminPage() {
                   <tr className="bg-surface-container-low text-on-surface-variant text-sm uppercase tracking-wider">
                     <th className="p-4 font-bold">User</th>
                     <th className="p-4 font-bold">Email</th>
+                    <th className="p-4 font-bold text-center">Status</th>
                     <th className="p-4 font-bold">Tags</th>
                     <th className="p-4 font-bold text-right">Actions</th>
                   </tr>
@@ -244,7 +343,7 @@ function AdminPage() {
                     <tr key={u._id} className="hover:bg-surface-container-high/50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <img src={u.image || `https://www.gravatar.com/avatar/?d=identicon`} className="w-8 h-8 rounded-full" alt="" />
+                          <img src={getAvatarUrl(u)} className="w-8 h-8 rounded-full" alt="" />
                           <div>
                             <div className="font-bold">{u.name}</div>
                             <div className="text-xs text-on-surface-variant">@{u.slackId || u.id.slice(-6)}</div>
@@ -252,6 +351,18 @@ function AdminPage() {
                         </div>
                       </td>
                       <td className="p-4 text-sm text-on-surface-variant">{u.email}</td>
+                      <td className="p-4 text-center">
+                        <button 
+                          onClick={() => handleVerifyUser(u._id, u.verificationStatus)}
+                          className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-bold transition-colors ${
+                            u.verificationStatus === 'verified' 
+                              ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                              : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-highest/80'
+                          }`}
+                        >
+                          {u.verificationStatus === 'verified' ? 'Verified' : 'Unverified'}
+                        </button>
+                      </td>
                       <td className="p-4">
                         <div className="flex flex-wrap gap-1">
                           {u.tags?.map((t: string) => <UserTag key={t} tag={t} />)}
@@ -344,6 +455,38 @@ function AdminPage() {
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
+      {/* Custom Modal */}
+      {modalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface-container-high w-full max-w-sm rounded-[24px] overflow-hidden border border-outline-variant/30 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-headline font-black mb-2">{modalConfig.title}</h3>
+              <p className="text-on-surface-variant font-body leading-relaxed">{modalConfig.message}</p>
+            </div>
+            <div className="p-4 bg-surface-container-highest/50 flex justify-end gap-3 border-t border-outline-variant/10">
+              {modalConfig.confirmText !== "Got it" && modalConfig.confirmText !== "Close" && (
+                <button 
+                  onClick={closeModal}
+                  className="px-5 py-2 rounded-full font-headline font-bold hover:bg-surface-container-highest transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              <button 
+                onClick={modalConfig.onConfirm}
+                className={`px-5 py-2 rounded-full font-headline font-bold text-white shadow-md transition-all active:scale-95 ${
+                  modalConfig.isDanger 
+                    ? "bg-error hover:brightness-110 shadow-error/20" 
+                    : "bg-primary hover:brightness-110 shadow-primary/20"
+                }`}
+              >
+                {modalConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className="w-64 bg-surface border-r border-outline-variant/15 h-screen sticky top-0 p-6 flex flex-col">
         <div className="text-primary font-black text-2xl mb-8 font-headline">Hackspot Admin</div>
@@ -395,7 +538,7 @@ function AdminPage() {
               <div className="font-bold">{session.user.name}</div>
               <div className="text-xs text-primary uppercase tracking-wider font-bold">Administrator</div>
             </div>
-            <img src={session.user.image || `https://www.gravatar.com/avatar/?d=identicon`} alt="Admin" className="w-10 h-10 rounded-full border-2 border-primary" />
+            <img src={getAvatarUrl(session.user)} alt="Admin" className="w-10 h-10 rounded-full border-2 border-primary" />
           </div>
         </header>
 

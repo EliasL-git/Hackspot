@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
-import { X, Heart, MessageCircle, Repeat2, AtSign } from "lucide-react";
+import { X, Heart, MessageCircle, Repeat2, AtSign, Flag } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
@@ -73,8 +73,20 @@ function NotificationsPageContent() {
       case 'mention': return <div className="p-2 bg-blue-500/10 rounded-full text-blue-500"><AtSign className="w-5 h-5" /></div>;
       case 'like': return <div className="p-2 bg-pink-500/10 rounded-full text-pink-500"><Heart className="w-5 h-5 fill-current" /></div>;
       case 'repost': return <div className="p-2 bg-green-500/10 rounded-full text-green-500"><Repeat2 className="w-5 h-5" /></div>;
+      case 'report': return <div className="p-2 bg-error/10 rounded-full text-error"><Flag className="w-5 h-5" /></div>;
       default: return <div className="p-2 bg-surface-container rounded-full text-on-surface-variant"><MessageCircle className="w-5 h-5" /></div>;
     }
+  };
+
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    if (user?.name) {
+      return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
   };
 
   return (
@@ -136,7 +148,7 @@ function NotificationsPageContent() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
                     <img 
-                      src={`https://www.gravatar.com/avatar/${MD5(notif.sender.name.toLowerCase()).toString()}?d=identicon&s=100`} 
+                      src={getAvatarUrl(notif.sender)} 
                       alt="" 
                       className="w-6 h-6 rounded-full"
                     />
@@ -149,6 +161,7 @@ function NotificationsPageContent() {
                     {notif.type === 'mention' && "mentioned you in a post"}
                     {notif.type === 'like' && "liked your post"}
                     {notif.type === 'repost' && "reposted your activity"}
+                    {notif.type === 'report' && "reported a post (Admin Alert)"}
                   </p>
                 </div>
                 {!notif.read && (
