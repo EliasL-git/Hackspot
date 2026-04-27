@@ -54,6 +54,25 @@ function HomePage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Custom Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    isDanger?: boolean;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirm",
+    isDanger: false
+  });
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
   // Track which posts have been viewed in this session to avoid spamming the API
   const viewedPosts = useRef<Set<string>>(new Set());
 
@@ -150,7 +169,13 @@ function HomePage() {
 
   const handleLike = async (postId: string) => {
     if (!session) {
-      alert("You must be logged in to like posts!");
+      setModalConfig({
+        isOpen: true,
+        title: "Sign In Required",
+        message: "You must be logged in to like posts!",
+        onConfirm: closeModal,
+        confirmText: "Got it"
+      });
       return;
     }
     try {
@@ -171,53 +196,98 @@ function HomePage() {
         }));
       } else {
         const errorData = await res.json();
-        alert(`Failed to like: ${errorData.error || "Unknown error"}`);
+        setModalConfig({
+          isOpen: true,
+          title: "Error",
+          message: `Failed to like: ${errorData.error || "Unknown error"}`,
+          onConfirm: closeModal,
+          confirmText: "Close",
+          isDanger: true
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("An unexpected error occurred while liking.");
     }
   };
 
-  const handleReport = async (postId: string) => {
+  const handleReport = (postId: string) => {
     if (!session) {
-      alert("You must be logged in to report posts!");
+      setModalConfig({
+        isOpen: true,
+        title: "Sign In Required",
+        message: "You must be logged in to report posts!",
+        onConfirm: closeModal,
+        confirmText: "Got it"
+      });
       return;
     }
-    if (!confirm("Are you sure you want to report this post to the admins?")) return;
     
-    try {
-      const res = await fetch(`/api/posts/${postId}/report`, { method: "POST" });
-      if (res.ok) {
-        alert("Post reported successfully. Thank you for keeping Hackspot safe.");
-        // Optimistically update
-        setPosts(prev => prev.map(p => {
-          if (p._id === postId) {
-            return {
-              ...p,
-              reports: [...(p.reports || []), session.user.id]
-            };
+    setModalConfig({
+      isOpen: true,
+      title: "Report Post",
+      message: "Are you sure you want to report this post to the admins?",
+      confirmText: "Report",
+      isDanger: true,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/posts/${postId}/report`, { method: "POST" });
+          if (res.ok) {
+            setModalConfig({
+              isOpen: true,
+              title: "Post Reported",
+              message: "Post reported successfully. Thank you for keeping Hackspot safe.",
+              onConfirm: closeModal,
+              confirmText: "Close"
+            });
+            // Optimistically update
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                return {
+                  ...p,
+                  reports: [...(p.reports || []), session.user.id]
+                };
+              }
+              return p;
+            }));
+          } else {
+            setModalConfig({
+              isOpen: true,
+              title: "Error",
+              message: "Failed to report post.",
+              onConfirm: closeModal,
+              confirmText: "Close",
+              isDanger: true
+            });
           }
-          return p;
-        }));
-      } else {
-        alert("Failed to report post.");
+        } catch (error) {
+          console.error(error);
+        }
       }
-    } catch (error) {
-      console.error(error);
-    }
+    });
   };
 
-  const handleDelete = async (postId: string) => {
-    if (!session || !confirm("Are you sure you want to delete this post?")) return;
-    try {
-      const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
-      if (res.ok) {
-        setPosts(prev => prev.filter(p => p._id !== postId));
+  const handleDelete = (postId: string) => {
+    if (!session) return;
+    
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Post",
+      message: "Are you sure you want to delete this post? This action cannot be undone.",
+      confirmText: "Delete",
+      isDanger: true,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
+          if (res.ok) {
+            setPosts(prev => prev.filter(p => p._id !== postId));
+          }
+        } catch (error) {
+          console.error(error);
+        }
       }
-    } catch (error) {
-      console.error(error);
-    }
+    });
   };
 
   const handlePostChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -319,7 +389,14 @@ function HomePage() {
       
       setMediaFiles(prev => [...prev, { url: fileUrl, type: file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image' }]);
     } catch (err) {
-      alert("Upload failed");
+      setModalConfig({
+        isOpen: true,
+        title: "Upload Failed",
+        message: "Failed to upload media. Please try again.",
+        onConfirm: closeModal,
+        confirmText: "Close",
+        isDanger: true
+      });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -361,6 +438,38 @@ function HomePage() {
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
+      {/* Custom Modal */}
+      {modalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface-container-high w-full max-w-sm rounded-[24px] overflow-hidden border border-outline-variant/30 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-headline font-black mb-2">{modalConfig.title}</h3>
+              <p className="text-on-surface-variant font-body leading-relaxed">{modalConfig.message}</p>
+            </div>
+            <div className="p-4 bg-surface-container-highest/50 flex justify-end gap-3 border-t border-outline-variant/10">
+              {modalConfig.confirmText !== "Got it" && modalConfig.confirmText !== "Close" && (
+                <button 
+                  onClick={closeModal}
+                  className="px-5 py-2 rounded-full font-headline font-bold hover:bg-surface-container-highest transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              <button 
+                onClick={modalConfig.onConfirm}
+                className={`px-5 py-2 rounded-full font-headline font-bold text-white shadow-md transition-all active:scale-95 ${
+                  modalConfig.isDanger 
+                    ? "bg-error hover:brightness-110 shadow-error/20" 
+                    : "bg-primary hover:brightness-110 shadow-primary/20"
+                }`}
+              >
+                {modalConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SideNavBar Navigation */}
       <aside className="hidden xl:flex flex-col h-screen sticky top-0 p-8 space-y-2 bg-surface w-80 border-r border-outline-variant/15 justify-between flex-shrink-0">
         <div>
