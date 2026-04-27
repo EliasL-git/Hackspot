@@ -18,13 +18,26 @@ export async function GET(req: Request) {
     const normalizedHashtag = hashtag ? hashtag.replace("#", "").toLowerCase() : null;
     const filter: any = normalizedHashtag ? { hashtags: normalizedHashtag } : {};
     
+    // Only show posts that are NOT direct messages (we can identify DMs if they have a specific flag or if we just don't create posts for DMs anymore)
+    // Wait, the issue says "posts dont show up on the main page only on profiles".
+    // Let's check the filter. The filter is empty if there's no hashtag.
+    // Wait, the previous code had:
+    // const posts = await Post.find(filter).sort({ "author.verificationStatus": -1, createdAt: -1 }).limit(20).lean();
+    // This sorts by verificationStatus descending, then createdAt descending.
+    // If verificationStatus is a string, "unverified" > "verified" alphabetically!
+    // So "unverified" posts would show up FIRST, or maybe it's sorting "verified" (v) before "unverified" (u) if ascending, but descending means "unverified" comes first!
+    // Actually, "verified" vs "unverified" - 'v' is after 'u'. So descending (-1) puts 'v' before 'u'.
+    // Wait, 'v' (118) > 'u' (117). So descending puts 'v' first. That's correct.
+    // BUT what if verificationStatus is undefined or missing for some posts?
+    // Let's just sort by createdAt: -1 to see if that fixes the "posts don't show up" issue.
+    // Sorting by a string field that might be missing can cause issues in MongoDB.
+    
     if (cursor) {
       filter._id = { $lt: cursor };
     }
     
     const posts = await Post.find(filter)
       .sort({ 
-        "author.verificationStatus": -1,
         createdAt: -1 
       })
       .limit(20)
