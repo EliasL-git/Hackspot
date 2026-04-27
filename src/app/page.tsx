@@ -349,6 +349,14 @@ function HomePage() {
     }
   };
 
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+  };
+
   if (isPending) return null;
 
   return (
@@ -442,7 +450,7 @@ function HomePage() {
           <form onSubmit={handleSubmit} className="p-8 border-b border-outline-variant/15 flex gap-6 hover:bg-white/[0.01] transition-colors">
             <div className="w-14 h-14 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
               <img 
-                src={(session.user as any).image || `https://www.gravatar.com/avatar/${MD5(session.user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`} 
+                src={getAvatarUrl(session.user)} 
                 alt={session.user.name} 
                 className="w-full h-full object-cover" 
               />
@@ -544,7 +552,7 @@ function HomePage() {
               className="p-6 flex gap-4 hover:bg-surface-container-low/50 transition-colors cursor-pointer group border-b border-outline-variant/10"
             >
               <div className="w-12 h-12 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
-                <img src={post.author.image} alt={post.author.name} className="w-full h-full object-cover" />
+                <img src={getAvatarUrl(post.author)} alt={post.author.name} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
