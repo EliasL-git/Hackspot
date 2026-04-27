@@ -84,7 +84,7 @@ function NotificationsPageContent() {
       return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
     }
     if (user?.name) {
-      return `https://www.gravatar.com/avatar/${MD5(user.name.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+      return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
     }
     return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
   };
