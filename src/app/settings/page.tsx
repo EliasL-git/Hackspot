@@ -214,4 +214,4 @@ function SettingsPageContent() {
   );
 }
 
-export default dynamic(() => Promise.resolve(SettingsPageContent), { ss: false });
+export default dynamic(() => Promise.resolve(SettingsPageContent), { ssr: false });
