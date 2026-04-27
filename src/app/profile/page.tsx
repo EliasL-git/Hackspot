@@ -7,6 +7,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
 import { UserTag, TAG_METADATA } from "@/components/UserTag";
+import { renderContent } from "@/lib/renderContent";
 
 function ProfilePageContent() {
   const { data: session, isPending } = authClient.useSession();
@@ -16,6 +17,10 @@ function ProfilePageContent() {
   const [editSlackId, setEditSlackId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isGithubLinked, setIsGithubLinked] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts');
+  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [votedPosts, setVotedPosts] = useState<any[]>([]);
+  const [loadingContent, setLoadingContent] = useState(false);
 
   // Set initial stats from session if available
   useEffect(() => {
@@ -43,6 +48,25 @@ function ProfilePageContent() {
           setIsGithubLinked(data.some(acc => acc.providerId === 'github'));
         }
       });
+
+      // Fetch user profile data to get posts and votes
+      const fetchProfileData = async () => {
+        setLoadingContent(true);
+        try {
+          const handle = u.slackId || u.name;
+          const res = await fetch(`/api/users/profile/${handle}`);
+          if (res.ok) {
+            const data = await res.json();
+            setUserPosts(data.posts || []);
+            setVotedPosts(data.votedPosts || []);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoadingContent(false);
+        }
+      };
+      fetchProfileData();
     }
   }, [session?.user]);
 
@@ -158,6 +182,66 @@ function ProfilePageContent() {
       });
     }
   };
+
+  const renderPost = (post: any) => (
+    <article key={post._id} className="p-6 flex gap-4 hover:bg-surface-container-low/50 transition-colors cursor-pointer group border-b border-outline-variant/10">
+      <div className="w-12 h-12 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
+        <img src={getAvatarUrl(post.author)} alt={post.author.name} className="w-full h-full object-cover" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-bold font-headline text-lg group-hover:text-primary transition-colors">{post.author.name}</span>
+          {Array.isArray(post.author.tags) && (post.author.equippedTag || post.author.tags[0]) && (
+            <UserTag tag={post.author.equippedTag || post.author.tags[0]} />
+          )}
+          {post.author.verificationStatus === "verified" && (
+            <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Verified notable member">verified</span>
+          )}
+          {post.author.slackId && (
+            <span className="text-on-surface-variant/60 font-body text-sm truncate" title="Username">@{post.author.slackId}</span>
+          )}
+          <span className="text-on-surface-variant/40 font-body text-sm">· {new Date(post.createdAt).toLocaleDateString()}</span>
+        </div>
+        <div className="text-on-surface text-lg font-body mb-4 leading-relaxed whitespace-pre-wrap">{renderContent(post.content, post.author)}</div>
+        
+        {post.media && post.media.length > 0 && (
+          <div className="mt-3 grid gap-2 grid-cols-2 mb-4">
+            {post.media.map((m: any, i: number) => {
+              const src = m.url.startsWith('http') ? m.url : `https://${m.url}`;
+              return <img key={i} src={src} alt="Post media" className="rounded-xl max-h-96 object-cover w-full" />
+            })}
+          </div>
+        )}
+
+        {post.poll && (
+          <div className="mt-4 mb-4 bg-surface-container-low rounded-xl border border-outline-variant/15 p-4">
+            <h4 className="font-bold font-headline mb-3 text-lg">{post.poll.question}</h4>
+            <div className="space-y-2">
+              {post.poll.options.map((option: any, index: number) => {
+                const totalVotes = post.poll.options.reduce((sum: number, opt: any) => sum + opt.votes.length, 0);
+                const percentage = totalVotes > 0 ? Math.round((option.votes.length / totalVotes) * 100) : 0;
+                const hasVoted = option.votes.includes(user.id);
+                
+                return (
+                  <div key={index} className={`w-full relative overflow-hidden rounded-lg border transition-all ${hasVoted ? 'border-primary bg-primary/5' : 'border-outline-variant/30'}`}>
+                    <div className={`absolute top-0 left-0 bottom-0 ${hasVoted ? 'bg-primary/20' : 'bg-surface-container-highest/50'} transition-all duration-500`} style={{ width: `${percentage}%` }} />
+                    <div className="relative flex justify-between items-center px-4 py-3 z-10">
+                      <span className={`font-bold ${hasVoted ? 'text-primary' : 'text-on-surface'}`}>{option.text}</span>
+                      <span className="text-sm font-medium text-on-surface-variant">{percentage}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 text-xs text-on-surface-variant/60 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">how_to_vote</span>
+              {post.poll.options.reduce((sum: number, opt: any) => sum + opt.votes.length, 0)} votes
+            </div>
+          </div>
+        )}
+      </div>
+    </article>
+  );
 
   return (
     <div className="flex min-h-screen max-w-[1440px] mx-auto bg-background text-on-surface">
@@ -357,8 +441,8 @@ function ProfilePageContent() {
                            }}
                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                              isEquipped 
-                             ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
-                             : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
+                               ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
+                               : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
                            }`}
                            title={meta.desc}
                          >
@@ -376,20 +460,54 @@ function ProfilePageContent() {
         </section>
 
         <nav className="flex border-b border-outline-variant/15 font-headline font-bold sticky top-[60px] bg-surface/80 backdrop-blur-md z-30">
-          <button className="flex-1 py-4 text-center hover:bg-white/5 transition-colors relative">
+          <button 
+            onClick={() => setActiveTab('posts')}
+            className={`flex-1 py-4 text-center transition-colors relative ${activeTab === 'posts' ? 'text-on-surface' : 'text-on-surface-variant hover:bg-white/5'}`}
+          >
             Posts
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-primary rounded-full"></div>
+            {activeTab === 'posts' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-primary rounded-full"></div>}
+          </button>
+          <button 
+            onClick={() => setActiveTab('votes')}
+            className={`flex-1 py-4 text-center transition-colors relative ${activeTab === 'votes' ? 'text-on-surface' : 'text-on-surface-variant hover:bg-white/5'}`}
+          >
+            Votes
+            {activeTab === 'votes' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-primary rounded-full"></div>}
           </button>
           <button className="flex-1 py-4 text-center text-on-surface-variant hover:bg-white/5 transition-colors">Media</button>
           <button className="flex-1 py-4 text-center text-on-surface-variant hover:bg-white/5 transition-colors">Likes</button>
         </nav>
 
-        <div className="p-12 text-center text-on-surface-variant">
-          <p>No activity yet.</p>
+        <div className="divide-y divide-outline-variant/15">
+          {loadingContent ? (
+            <div className="p-12 flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : activeTab === 'posts' ? (
+            userPosts.length > 0 ? (
+              userPosts.map(renderPost)
+            ) : (
+              <div className="p-12 text-center text-on-surface-variant">
+                <p>No posts yet.</p>
+              </div>
+            )
+          ) : activeTab === 'votes' ? (
+            votedPosts.length > 0 ? (
+              votedPosts.map(renderPost)
+            ) : (
+              <div className="p-12 text-center text-on-surface-variant">
+                <p>You haven't voted on any polls yet.</p>
+              </div>
+            )
+          ) : (
+            <div className="p-12 text-center text-on-surface-variant">
+              <p>No activity yet.</p>
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
 }
 
-export default dynamic(() => Promise.resolve(ProfilePageContent), { ssr: false });
+export default dynamic(() => Promise.resolve(ProfilePageContent), { ss: false });

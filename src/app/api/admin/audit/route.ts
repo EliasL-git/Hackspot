@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import User from "@/models/User";
 import AuditLog from "@/models/AuditLog";
+import User from "@/models/User";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import mongoose from "mongoose";
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -24,22 +24,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   try {
-    const { id } = await params;
-    const { tags } = await req.json();
-    
-    await User.findByIdAndUpdate(id, { $set: { tags } });
-
-    await AuditLog.create({
-      adminId: adminUser.id,
-      adminName: adminUser.name,
-      action: 'UPDATE_TAGS',
-      targetId: id,
-      targetType: 'User',
-      details: { tags }
-    });
-
-    return NextResponse.json({ success: true });
+    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100).lean();
+    return NextResponse.json(logs);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch audit logs" }, { status: 500 });
   }
 }
