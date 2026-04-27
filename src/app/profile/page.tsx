@@ -101,7 +101,13 @@ function ProfilePageContent() {
   }
 
   const user = session.user as any;
-  const gravatarUrl = `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=200`;
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=200`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=200`;
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,7 +259,7 @@ function ProfilePageContent() {
             <div className="flex justify-between items-start">
               <div className="relative -mt-16 md:-mt-20">
                 <div className="p-1 bg-background rounded-full">
-                  <img src={user.image || gravatarUrl} alt={user.name} className="w-24 h-24 md:w-36 md:h-36 rounded-full border-4 border-background object-cover bg-surface-container" />
+                  <img src={getAvatarUrl(user)} alt={user.name} className="w-24 h-24 md:w-36 md:h-36 rounded-full border-4 border-background object-cover bg-surface-container" />
                 </div>
               </div>
               <div className="pt-4 flex items-center gap-2">
