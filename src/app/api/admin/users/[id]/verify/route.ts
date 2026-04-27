@@ -26,7 +26,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const { verificationStatus } = await req.json();
     
-    await User.findByIdAndUpdate(id, { $set: { verificationStatus } });
+    const update: any = { $set: { verificationStatus } };
+    
+    if (verificationStatus === 'verified') {
+      update.$addToSet = { tags: 'verified' };
+    } else {
+      update.$pull = { tags: 'verified' };
+    }
+    
+    await User.findByIdAndUpdate(id, update);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to update verification status" }, { status: 500 });
