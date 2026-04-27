@@ -77,6 +77,17 @@ function NotificationsPageContent() {
     }
   };
 
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    if (user?.name) {
+      return `https://www.gravatar.com/avatar/${MD5(user.name.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+  };
+
   return (
     <div className="flex min-h-screen max-w-[1440px] mx-auto bg-background text-on-surface">
       {/* Sidebar (Desktop) */}
@@ -136,7 +147,7 @@ function NotificationsPageContent() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
                     <img 
-                      src={`https://www.gravatar.com/avatar/${MD5(notif.sender.name.toLowerCase()).toString()}?d=identicon&s=100`} 
+                      src={getAvatarUrl(notif.sender)} 
                       alt="" 
                       className="w-6 h-6 rounded-full"
                     />
