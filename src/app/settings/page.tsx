@@ -14,10 +14,18 @@ function SettingsPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userImage, setUserImage] = useState<string | null>(null);
 
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=200`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=200`;
+  };
+
   useEffect(() => {
     if (session?.user) {
       const user = session.user as any;
-      setUserImage(user.image || `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=200`);
+      setUserImage(getAvatarUrl(user));
     }
   }, [session]);
 
