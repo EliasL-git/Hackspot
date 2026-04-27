@@ -49,7 +49,7 @@ if (hackClubClientId && hackClubClientSecret) {
               emailVerified: !!profile.email,
               image: profile.picture,
               slackId: profile.slack_id,
-              verificationStatus: profile.verification_status,
+              verificationStatus: "unverified", // Always start as unverified
             };
           },
         },

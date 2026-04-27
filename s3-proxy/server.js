@@ -41,6 +41,13 @@ const server = http.createServer(async (req, res) => {
     // Remove leading slash
     let key = cleanPath.substring(1);
 
+    // Decode URI components in the key since S3 keys might have spaces or special characters encoded in the URL
+    try {
+        key = decodeURIComponent(key);
+    } catch (e) {
+        console.error("Error decoding URI component:", e);
+    }
+
     // If the path accidentally includes the bucket name (e.g. from forcePathStyle URLs), strip it
     if (key.startsWith(`${bucket}/`)) {
         key = key.substring(bucket.length + 1);

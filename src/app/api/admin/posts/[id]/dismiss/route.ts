@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import mongoose from "mongoose";
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -28,18 +28,23 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   try {
     const { id } = await params;
     const post = await Post.findById(id);
-    if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
 
     const reporters = post.reports || [];
-    await Post.findByIdAndDelete(id);
+    
+    post.reports = [];
+    await post.save();
 
     await AuditLog.create({
       adminId: adminUser.id,
       adminName: adminUser.name,
-      action: 'DELETE_POST',
+      action: 'DISMISS_REPORT',
       targetId: id,
       targetType: 'Post',
-      details: { authorId: post.author.id, contentExcerpt: post.content?.substring(0, 50) }
+      details: { reporterCount: reporters.length }
     });
 
     if (reporters.length > 0) {
@@ -49,7 +54,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
           const reporter = await User.findOne({ $or: [{ id: reporterId }, { _id: reporterId }] });
           if (reporter) {
             const handle = reporter.slackId || reporter.name.replace(/\s+/g, '').toLowerCase();
-            const content = `@${handle} Hey we saw your report and decided to take action`;
+            const content = `@${handle} Hey the post you reported follows our rules! Please dont false report`;
             
             const sysPost = await Post.create({
               content,
@@ -82,6 +87,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to delete post" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to dismiss report" }, { status: 500 });
   }
 }

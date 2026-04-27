@@ -9,6 +9,18 @@ import { MD5 } from "crypto-js";
 import { UserTag } from "@/components/UserTag";
 import { renderContent } from "@/lib/renderContent";
 
+interface PollOption {
+  _id?: string;
+  text: string;
+  votes: string[];
+}
+
+interface Poll {
+  question: string;
+  options: PollOption[];
+  endDate?: string;
+}
+
 interface Post {
   _id: string;
   content: string;
@@ -25,6 +37,7 @@ interface Post {
     };
   };
   media?: { url: string; type: string }[];
+  poll?: Poll;
   ogData?: {
     title?: string;
     description?: string;
@@ -53,6 +66,30 @@ function HomePage() {
   const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Poll state
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+
+  // Custom Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    isDanger?: boolean;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirm",
+    isDanger: false
+  });
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
 
   // Track which posts have been viewed in this session to avoid spamming the API
   const viewedPosts = useRef<Set<string>>(new Set());
@@ -150,7 +187,13 @@ function HomePage() {
 
   const handleLike = async (postId: string) => {
     if (!session) {
-      alert("You must be logged in to like posts!");
+      setModalConfig({
+        isOpen: true,
+        title: "Sign In Required",
+        message: "You must be logged in to like posts!",
+        onConfirm: closeModal,
+        confirmText: "Got it"
+      });
       return;
     }
     try {
@@ -171,49 +214,127 @@ function HomePage() {
         }));
       } else {
         const errorData = await res.json();
-        alert(`Failed to like: ${errorData.error || "Unknown error"}`);
+        setModalConfig({
+          isOpen: true,
+          title: "Error",
+          message: `Failed to like: ${errorData.error || "Unknown error"}`,
+          onConfirm: closeModal,
+          confirmText: "Close",
+          isDanger: true
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("An unexpected error occurred while liking.");
     }
   };
 
-  const handleReport = async (postId: string) => {
+  const handleReport = (postId: string) => {
     if (!session) {
-      alert("You must be logged in to report posts!");
+      setModalConfig({
+        isOpen: true,
+        title: "Sign In Required",
+        message: "You must be logged in to report posts!",
+        onConfirm: closeModal,
+        confirmText: "Got it"
+      });
       return;
     }
-    if (!confirm("Are you sure you want to report this post to the admins?")) return;
     
+    setModalConfig({
+      isOpen: true,
+      title: "Report Post",
+      message: "Are you sure you want to report this post to the admins?",
+      confirmText: "Report",
+      isDanger: true,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/posts/${postId}/report`, { method: "POST" });
+          if (res.ok) {
+            setModalConfig({
+              isOpen: true,
+              title: "Post Reported",
+              message: "Post reported successfully. Thank you for keeping Hackspot safe.",
+              onConfirm: closeModal,
+              confirmText: "Close"
+            });
+            // Optimistically update
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                return {
+                  ...p,
+                  reports: [...(p.reports || []), session.user.id]
+                };
+              }
+              return p;
+            }));
+          } else {
+            setModalConfig({
+              isOpen: true,
+              title: "Error",
+              message: "Failed to report post.",
+              onConfirm: closeModal,
+              confirmText: "Close",
+              isDanger: true
+            });
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    });
+  };
+
+  const handleDelete = (postId: string) => {
+    if (!session) return;
+    
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Post",
+      message: "Are you sure you want to delete this post? This action cannot be undone.",
+      confirmText: "Delete",
+      isDanger: true,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
+          if (res.ok) {
+            setPosts(prev => prev.filter(p => p._id !== postId));
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    });
+  };
+
+  const handleVote = async (postId: string, optionIndex: number) => {
+    if (!session) {
+      setModalConfig({
+        isOpen: true,
+        title: "Sign In Required",
+        message: "You must be logged in to vote on polls!",
+        onConfirm: closeModal,
+        confirmText: "Got it"
+      });
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/posts/${postId}/report`, { method: "POST" });
+      const res = await fetch(`/api/posts/${postId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optionIndex })
+      });
+
       if (res.ok) {
-        alert("Post reported successfully. Thank you for keeping Hackspot safe.");
-        // Optimistically update
+        const { poll } = await res.json();
         setPosts(prev => prev.map(p => {
           if (p._id === postId) {
-            return {
-              ...p,
-              reports: [...(p.reports || []), session.user.id]
-            };
+            return { ...p, poll };
           }
           return p;
         }));
-      } else {
-        alert("Failed to report post.");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleDelete = async (postId: string) => {
-    if (!session || !confirm("Are you sure you want to delete this post?")) return;
-    try {
-      const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
-      if (res.ok) {
-        setPosts(prev => prev.filter(p => p._id !== postId));
       }
     } catch (error) {
       console.error(error);
@@ -319,27 +440,68 @@ function HomePage() {
       
       setMediaFiles(prev => [...prev, { url: fileUrl, type: file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image' }]);
     } catch (err) {
-      alert("Upload failed");
+      setModalConfig({
+        isOpen: true,
+        title: "Upload Failed",
+        message: "Failed to upload media. Please try again.",
+        onConfirm: closeModal,
+        confirmText: "Close",
+        isDanger: true
+      });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
+  const handleAddPollOption = () => {
+    if (pollOptions.length < 4) {
+      setPollOptions([...pollOptions, ""]);
+    }
+  };
+
+  const handleRemovePollOption = (index: number) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handlePollOptionChange = (index: number, value: string) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newPost.trim() && mediaFiles.length === 0) || !session) return;
+    
+    let pollData = undefined;
+    if (showPollCreator && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2) {
+      pollData = {
+        question: pollQuestion.trim(),
+        options: pollOptions.filter(o => o.trim()).map(text => ({ text, votes: [] }))
+      };
+    }
+
+    if ((!newPost.trim() && mediaFiles.length === 0 && !pollData) || !session) return;
 
     setLoading(true);
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newPost, media: mediaFiles }),
+        body: JSON.stringify({ 
+          content: newPost, 
+          media: mediaFiles,
+          poll: pollData
+        }),
       });
       if (res.ok) {
         setNewPost("");
         setMediaFiles([]);
+        setShowPollCreator(false);
+        setPollQuestion("");
+        setPollOptions(["", ""]);
         fetchData();
       }
     } catch (error: any) {
@@ -349,10 +511,50 @@ function HomePage() {
     }
   };
 
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+  };
+
   if (isPending) return null;
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
+      {/* Custom Modal */}
+      {modalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface-container-high w-full max-w-sm rounded-[24px] overflow-hidden border border-outline-variant/30 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-headline font-black mb-2">{modalConfig.title}</h3>
+              <p className="text-on-surface-variant font-body leading-relaxed">{modalConfig.message}</p>
+            </div>
+            <div className="p-4 bg-surface-container-highest/50 flex justify-end gap-3 border-t border-outline-variant/10">
+              {modalConfig.confirmText !== "Got it" && modalConfig.confirmText !== "Close" && (
+                <button 
+                  onClick={closeModal}
+                  className="px-5 py-2 rounded-full font-headline font-bold hover:bg-surface-container-highest transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              <button 
+                onClick={modalConfig.onConfirm}
+                className={`px-5 py-2 rounded-full font-headline font-bold text-white shadow-md transition-all active:scale-95 ${
+                  modalConfig.isDanger 
+                    ? "bg-error hover:brightness-110 shadow-error/20" 
+                    : "bg-primary hover:brightness-110 shadow-primary/20"
+                }`}
+              >
+                {modalConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SideNavBar Navigation */}
       <aside className="hidden xl:flex flex-col h-screen sticky top-0 p-8 space-y-2 bg-surface w-80 border-r border-outline-variant/15 justify-between flex-shrink-0">
         <div>
@@ -442,7 +644,7 @@ function HomePage() {
           <form onSubmit={handleSubmit} className="p-8 border-b border-outline-variant/15 flex gap-6 hover:bg-white/[0.01] transition-colors">
             <div className="w-14 h-14 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
               <img 
-                src={(session.user as any).image || `https://www.gravatar.com/avatar/${MD5(session.user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`} 
+                src={getAvatarUrl(session.user)} 
                 alt={session.user.name} 
                 className="w-full h-full object-cover" 
               />
@@ -497,6 +699,45 @@ function HomePage() {
                 </div>
               )}
 
+              {showPollCreator && (
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/15 mt-2">
+                  <input
+                    type="text"
+                    placeholder="Ask a question..."
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                    className="w-full bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 text-lg font-bold mb-4 pb-2"
+                  />
+                  <div className="space-y-2">
+                    {pollOptions.map((option, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          placeholder={`Option ${i + 1}`}
+                          value={option}
+                          onChange={(e) => handlePollOptionChange(i, e.target.value)}
+                          className="flex-1 bg-surface-container border border-outline-variant/30 rounded-lg px-3 py-2 focus:ring-1 focus:ring-primary"
+                        />
+                        {pollOptions.length > 2 && (
+                          <button type="button" onClick={() => handleRemovePollOption(i)} className="text-on-surface-variant hover:text-error">
+                            <span className="material-symbols-outlined">close</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {pollOptions.length < 4 && (
+                    <button
+                      type="button"
+                      onClick={handleAddPollOption}
+                      className="mt-3 text-primary font-bold text-sm hover:underline flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span> Add Option
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between items-center pt-4 border-t border-outline-variant/15 mt-2">
                 <div className="flex gap-2 text-primary">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
@@ -506,7 +747,7 @@ function HomePage() {
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
                     <span className="material-symbols-outlined text-[24px]">gif_box</span>
                   </button>
-                  <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
+                  <button type="button" onClick={() => setShowPollCreator(!showPollCreator)} className={`p-2.5 rounded-full transition-colors active:scale-95 ${showPollCreator ? 'bg-primary/20' : 'hover:bg-primary/10'}`}>
                     <span className="material-symbols-outlined text-[24px]">poll</span>
                   </button>
                   <button type="button" className="p-2.5 hover:bg-primary/10 rounded-full transition-colors active:scale-95">
@@ -515,7 +756,7 @@ function HomePage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading || uploading || (!newPost.trim() && mediaFiles.length === 0)}
+                  disabled={loading || uploading || ((!newPost.trim() && mediaFiles.length === 0) && (!showPollCreator || !pollQuestion.trim()))}
                   className="bg-primary hover:brightness-110 text-on-primary-fixed px-10 py-3 rounded-full font-headline font-bold text-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 active:scale-95"
                 >
                   {loading || uploading ? "Posting..." : "Post"}
@@ -544,7 +785,7 @@ function HomePage() {
               className="p-6 flex gap-4 hover:bg-surface-container-low/50 transition-colors cursor-pointer group border-b border-outline-variant/10"
             >
               <div className="w-12 h-12 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all">
-                <img src={post.author.image} alt={post.author.name} className="w-full h-full object-cover" />
+                <img src={getAvatarUrl(post.author)} alt={post.author.name} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -593,6 +834,52 @@ function HomePage() {
                       const src = m.url.startsWith('http') ? m.url : `https://${m.url}`;
                       return <img key={i} src={src} alt="Post media" className="rounded-xl max-h-96 object-cover w-full" />
                     })}
+                  </div>
+                )}
+
+                {/* Poll */}
+                {post.poll && (
+                  <div className="mt-4 mb-4 bg-surface-container-low rounded-xl border border-outline-variant/15 p-4">
+                    <h4 className="font-bold font-headline mb-3 text-lg">{post.poll.question}</h4>
+                    <div className="space-y-2">
+                      {post.poll.options.map((option, index) => {
+                        const totalVotes = post.poll!.options.reduce((sum, opt) => sum + opt.votes.length, 0);
+                        const percentage = totalVotes > 0 ? Math.round((option.votes.length / totalVotes) * 100) : 0;
+                        const hasVoted = session && option.votes.includes(session.user.id);
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(post._id, index);
+                            }}
+                            className={`w-full relative overflow-hidden rounded-lg border transition-all ${
+                              hasVoted 
+                                ? 'border-primary bg-primary/5' 
+                                : 'border-outline-variant/30 hover:bg-surface-container-high'
+                            }`}
+                          >
+                            <div 
+                              className={`absolute top-0 left-0 bottom-0 ${hasVoted ? 'bg-primary/20' : 'bg-surface-container-highest/50'} transition-all duration-500`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                            <div className="relative flex justify-between items-center px-4 py-3 z-10">
+                              <span className={`font-bold ${hasVoted ? 'text-primary' : 'text-on-surface'}`}>
+                                {option.text}
+                              </span>
+                              <span className="text-sm font-medium text-on-surface-variant">
+                                {percentage}%
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 text-xs text-on-surface-variant/60 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">how_to_vote</span>
+                      {post.poll.options.reduce((sum, opt) => sum + opt.votes.length, 0)} votes
+                    </div>
                   </div>
                 )}
 

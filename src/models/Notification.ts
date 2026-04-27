@@ -7,7 +7,7 @@ export interface INotification extends Document {
     name: string;
     image?: string;
   };
-  type: 'mention' | 'like' | 'repost';
+  type: 'mention' | 'like' | 'repost' | 'report';
   post: mongoose.Types.ObjectId;
   read: boolean;
   createdAt: Date;
@@ -20,7 +20,7 @@ const NotificationSchema: Schema = new Schema({
     name: { type: String, required: true },
     image: { type: String },
   },
-  type: { type: String, enum: ['mention', 'like', 'repost'], required: true },
+  type: { type: String, enum: ['mention', 'like', 'repost', 'report'], required: true },
   post: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
   read: { type: Boolean, default: false },
 }, { 

@@ -4,6 +4,7 @@ import Post from "@/models/Post";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export async function GET(req: Request) {
   const session = await auth.api.getSession({
@@ -17,14 +18,24 @@ export async function GET(req: Request) {
   await dbConnect();
 
   try {
-    const user = await User.findOne({ id: session.user.id }).lean();
+    const userId = session.user.id;
+    
+    // Better-Auth stores the user ID in _id when using MongoDB
+    // Mongoose throws CastError if we pass a non-ObjectId string to _id
+    const query: any[] = [{ id: userId }];
+    
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      query.push({ _id: userId });
+    }
+
+    const user = await User.findOne({ $or: query }).lean();
     
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get all posts by the user
-    const posts = await Post.find({ "author.id": user.id || user._id.toString() }).lean();
+    const posts = await Post.find({ "author.id": user.id || (user._id ? user._id.toString() : userId) }).lean();
 
     const exportData = {
       user: {
@@ -53,7 +64,7 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="hackspot-export-${user.slackId || user.id}.json"`,
+        "Content-Disposition": `attachment; filename="hackspot-export-${user.slackId || user.id || user._id || 'data'}.json"`,
       },
     });
   } catch (error) {

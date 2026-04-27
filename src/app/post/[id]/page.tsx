@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { UserTag } from "@/components/UserTag";
 import Link from "next/link";
 import { renderContent } from "@/lib/renderContent";
+import { MD5 } from "crypto-js";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -14,6 +15,14 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
 
   const authorUser = await User.findOne({ id: post.author.id }).lean() as any;
 
+  const getAvatarUrl = (user: any) => {
+    if (user?.image) return user.image;
+    if (user?.email) {
+      return `https://www.gravatar.com/avatar/${MD5(user.email.toLowerCase().trim()).toString()}?d=identicon&s=112`;
+    }
+    return `https://www.gravatar.com/avatar/?d=identicon&s=112`;
+  };
+
   return (
     <div className="min-h-screen bg-background p-6 text-on-surface">
       <div className="max-w-3xl mx-auto bg-surface p-6 rounded-3xl shadow-lg border border-outline-variant/20">
@@ -22,7 +31,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           Back
         </Link>
         <div className="flex items-center gap-3 mb-4">
-          <img src={post.author.image || "https://www.gravatar.com/avatar/?d=identicon&s=80"} alt={post.author.name} className="w-12 h-12 rounded-full" />
+          <img src={getAvatarUrl(authorUser || post.author)} alt={post.author.name} className="w-12 h-12 rounded-full" />
           <div>
             <div className="flex items-center gap-1">
               <div className="font-headline font-bold text-lg">{post.author.name}</div>

@@ -25,21 +25,29 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   try {
     const { id } = await params;
-    const { tags } = await req.json();
+    const { verificationStatus } = await req.json();
     
-    await User.findByIdAndUpdate(id, { $set: { tags } });
+    const update: any = { $set: { verificationStatus } };
+    
+    if (verificationStatus === 'verified') {
+      update.$addToSet = { tags: 'verified' };
+    } else {
+      update.$pull = { tags: 'verified' };
+    }
+    
+    await User.findByIdAndUpdate(id, update);
 
     await AuditLog.create({
       adminId: adminUser.id,
       adminName: adminUser.name,
-      action: 'UPDATE_TAGS',
+      action: 'UPDATE_VERIFICATION',
       targetId: id,
       targetType: 'User',
-      details: { tags }
+      details: { verificationStatus }
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update verification status" }, { status: 500 });
   }
 }

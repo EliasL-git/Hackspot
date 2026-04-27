@@ -5,6 +5,7 @@ import Post from "@/models/Post";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { S3Client, ListObjectsV2Command, ListObjectsV2CommandInput } from "@aws-sdk/client-s3";
+import mongoose from "mongoose";
 
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -13,7 +14,13 @@ export async function GET(req: Request) {
   await dbConnect();
   
   // Verify admin access
-  const user = await User.findOne({ id: session.user.id });
+  const userId = session.user.id;
+  const query: any[] = [{ id: userId }];
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    query.push({ _id: userId });
+  }
+
+  const user = await User.findOne({ $or: query });
   if (!user?.tags?.includes('admin') && !user?.tags?.includes('owner')) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

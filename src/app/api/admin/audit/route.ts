@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
+import AuditLog from "@/models/AuditLog";
 import User from "@/models/User";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -23,9 +24,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const users = await User.find().sort({ createdAt: -1 }).limit(100).lean();
-    return NextResponse.json(users);
+    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100).lean();
+    return NextResponse.json(logs);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch audit logs" }, { status: 500 });
   }
 }
