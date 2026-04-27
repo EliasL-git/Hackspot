@@ -8,6 +8,8 @@ import { NextResponse } from "next/server";
 import md5 from "md5";
 import ogs from "open-graph-scraper";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   await dbConnect();
   try {
@@ -110,7 +112,7 @@ export async function POST(req: Request) {
     if (content && content.trim() === "$help") {
       const orpheus = await User.findOne({ slackId: 'orpheus' });
       if (orpheus) {
-        const welcomeContent = `@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦖 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
+        const welcomeContent = `@@${(session.user as any).slackId || session.user.name.replace(/\s+/g, '').toLowerCase()}, I'm Orpheus! 🦖 Here's how Hackspot works:\n\n• Type @ to mention friends\n• Use # for hashtags to trend\n• $lines shows your GitHub contributions\n• $repo [url] links your code\n\nNeed anything else? Just ask!`;
 
         const welcomePost = await Post.create({
           content: welcomeContent,
