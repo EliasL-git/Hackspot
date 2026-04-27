@@ -15,6 +15,17 @@ export async function GET(req: Request) {
 
   await dbConnect();
   try {
+    const { searchParams } = new URL(req.url);
+    const countOnly = searchParams.get('count') === 'true';
+
+    if (countOnly) {
+      const unreadCount = await Notification.countDocuments({
+        recipient: session.user.id,
+        read: false
+      });
+      return NextResponse.json({ unreadCount });
+    }
+
     const notifications = await Notification.find({ recipient: session.user.id })
       .sort({ createdAt: -1 })
       .limit(50)
