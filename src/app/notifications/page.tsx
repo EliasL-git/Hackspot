@@ -163,4 +163,4 @@ function NotificationsPageContent() {
   );
 }
 
-export default dynamic(() => Promise.resolve(NotificationsPageContent), { ss: false });
+export default dynamic(() => Promise.resolve(NotificationsPageContent), { ssr: false });
