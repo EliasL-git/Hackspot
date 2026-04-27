@@ -10,10 +10,22 @@ import { MD5 } from "crypto-js";
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   await dbConnect();
-  const post = await Post.findById(resolvedParams.id).lean() as any;
+  
+  let post;
+  try {
+    post = await Post.findById(resolvedParams.id).lean() as any;
+  } catch (e) {
+    return notFound();
+  }
+  
   if (!post) return notFound();
 
-  const authorUser = await User.findOne({ id: post.author.id }).lean() as any;
+  let authorUser = null;
+  try {
+    authorUser = await User.findOne({ id: post.author.id }).lean() as any;
+  } catch (e) {
+    // ignore
+  }
 
   const getAvatarUrl = (user: any) => {
     if (user?.image) return user.image;
