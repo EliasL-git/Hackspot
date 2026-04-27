@@ -4,6 +4,8 @@ import Post from "@/models/Post";
 import { NextRequest, NextResponse } from "next/server";
 import md5 from "md5";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ handle: string }> }
