@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { MD5 } from "crypto-js";
 import { UserTag } from "@/components/UserTag";
 import { renderContent } from "@/lib/renderContent";
+import { NotificationBadge } from "@/components/NotificationBadge";
 
 interface PollOption {
   _id?: string;
@@ -575,11 +576,12 @@ function HomePage() {
               <span>Explore</span>
             </a>
             <Link
-              className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg active:scale-[0.98]"
+              className="text-slate-300 flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-[#ec3750]/10 hover:text-[#ec3750] transition-all font-headline font-medium text-lg active:scale-[0.98] relative"
               href="/notifications"
             >
               <span className="material-symbols-outlined">notifications</span>
               <span>Notifications</span>
+              <NotificationBadge />
             </Link>
             {session ? (
               <>
@@ -993,9 +995,10 @@ function HomePage() {
         <button className="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
           <span className="material-symbols-outlined">search</span>
         </button>
-        <button className="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+        <Link className="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors relative" href="/notifications">
           <span className="material-symbols-outlined">notifications</span>
-        </button>
+          <NotificationBadge />
+        </Link>
         {session ? (
           <Link className="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="/profile">
             <span className="material-symbols-outlined">person</span>
