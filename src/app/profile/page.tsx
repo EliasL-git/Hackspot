@@ -441,8 +441,8 @@ function ProfilePageContent() {
                            }}
                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                              isEquipped 
-                               ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
-                               : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
+                             ? `${meta.color} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105` 
+                             : 'bg-surface-container-low text-on-surface-variant/40 border-outline-variant/10 hover:bg-surface-container-highest'
                            }`}
                            title={meta.desc}
                          >
@@ -510,4 +510,4 @@ function ProfilePageContent() {
   );
 }
 
-export default dynamic(() => Promise.resolve(ProfilePageContent), { ss: false });
+export default dynamic(() => Promise.resolve(ProfilePageContent), { ssr: false });
