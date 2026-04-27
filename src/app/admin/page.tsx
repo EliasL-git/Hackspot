@@ -39,6 +39,25 @@ function AdminPage() {
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminPosts, setAdminPosts] = useState<any[]>([]);
 
+  // Custom Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    isDanger?: boolean;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirm",
+    isDanger: false
+  });
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
   const getAvatarUrl = (user: any) => {
     if (user?.image) return user.image;
     if (user?.email) {
@@ -128,29 +147,65 @@ function AdminPage() {
       if (res.ok) {
         setAdminUsers(prev => prev.map(u => u._id === userId ? { ...u, tags: newTags } : u));
       } else {
-        alert("Failed to update tags");
+        setModalConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Failed to update tags.",
+          onConfirm: closeModal,
+          confirmText: "Close",
+          isDanger: true
+        });
       }
     } catch (e) {
       console.error(e);
-      alert("Error updating tags");
+      setModalConfig({
+        isOpen: true,
+        title: "Error",
+        message: "An error occurred while updating tags.",
+        onConfirm: closeModal,
+        confirmText: "Close",
+        isDanger: true
+      });
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
-    
-    try {
-      const res = await fetch(`/api/admin/posts/${postId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setAdminPosts(prev => prev.filter(p => p._id !== postId));
-        setStats(prev => ({ ...prev, posts: prev.posts - 1 }));
-      } else {
-        alert("Failed to delete post");
+  const handleDeletePost = (postId: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Post",
+      message: "Are you sure you want to permanently delete this post? This action cannot be undone.",
+      confirmText: "Delete",
+      isDanger: true,
+      onConfirm: async () => {
+        closeModal();
+        try {
+          const res = await fetch(`/api/admin/posts/${postId}`, { method: 'DELETE' });
+          if (res.ok) {
+            setAdminPosts(prev => prev.filter(p => p._id !== postId));
+            setStats(prev => ({ ...prev, posts: prev.posts - 1 }));
+          } else {
+            setModalConfig({
+              isOpen: true,
+              title: "Error",
+              message: "Failed to delete post.",
+              onConfirm: closeModal,
+              confirmText: "Close",
+              isDanger: true
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          setModalConfig({
+            isOpen: true,
+            title: "Error",
+            message: "An error occurred while deleting the post.",
+            onConfirm: closeModal,
+            confirmText: "Close",
+            isDanger: true
+          });
+        }
       }
-    } catch (e) {
-      console.error(e);
-      alert("Error deleting post");
-    }
+    });
   };
 
   if (isPending || loading) {
@@ -353,6 +408,38 @@ function AdminPage() {
 
   return (
     <div className="flex min-h-screen bg-background text-on-surface">
+      {/* Custom Modal */}
+      {modalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface-container-high w-full max-w-sm rounded-[24px] overflow-hidden border border-outline-variant/30 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-headline font-black mb-2">{modalConfig.title}</h3>
+              <p className="text-on-surface-variant font-body leading-relaxed">{modalConfig.message}</p>
+            </div>
+            <div className="p-4 bg-surface-container-highest/50 flex justify-end gap-3 border-t border-outline-variant/10">
+              {modalConfig.confirmText !== "Got it" && modalConfig.confirmText !== "Close" && (
+                <button 
+                  onClick={closeModal}
+                  className="px-5 py-2 rounded-full font-headline font-bold hover:bg-surface-container-highest transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              <button 
+                onClick={modalConfig.onConfirm}
+                className={`px-5 py-2 rounded-full font-headline font-bold text-white shadow-md transition-all active:scale-95 ${
+                  modalConfig.isDanger 
+                    ? "bg-error hover:brightness-110 shadow-error/20" 
+                    : "bg-primary hover:brightness-110 shadow-primary/20"
+                }`}
+              >
+                {modalConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className="w-64 bg-surface border-r border-outline-variant/15 h-screen sticky top-0 p-6 flex flex-col">
         <div className="text-primary font-black text-2xl mb-8 font-headline">Hackspot Admin</div>
