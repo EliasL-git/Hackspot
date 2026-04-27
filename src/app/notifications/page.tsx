@@ -142,8 +142,8 @@ function NotificationsPageContent() {
                 className={`flex gap-4 p-4 hover:bg-surface-container-low transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
               >
                 <div className="flex flex-col items-center gap-2">
-                   {getNotificationIcon(notif.type)}
-                   <div className="w-0.5 flex-1 bg-outline-variant/20 rounded-full"></div>
+                  {getNotificationIcon(notif.type)}
+                  <div className="w-0.5 flex-1 bg-outline-variant/20 rounded-full"></div>
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
