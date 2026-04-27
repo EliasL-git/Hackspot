@@ -17,7 +17,13 @@ export async function GET(req: Request) {
   await dbConnect();
 
   try {
-    const user = await User.findOne({ id: session.user.id }).lean();
+    // Better-Auth stores the user ID in _id when using MongoDB
+    const user = await User.findOne({ 
+      $or: [
+        { id: session.user.id },
+        { _id: session.user.id }
+      ]
+    }).lean();
     
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -53,7 +59,7 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="hackspot-export-${user.slackId || user.id}.json"`,
+        "Content-Disposition": `attachment; filename="hackspot-export-${user.slackId || user.id || user._id}.json"`,
       },
     });
   } catch (error) {
