@@ -52,13 +52,9 @@ const server = http.createServer(async (req, res) => {
         return res.end("Not found");
     }
 
-    // Decode URI components in the key AFTER checking prefixes, because S3 keys might have spaces or special characters encoded in the URL
-    // AWS SDK v3 automatically encodes the key when creating the signature, so we need to pass the DECODED key to GetObjectCommand.
-    try {
-        key = decodeURIComponent(key);
-    } catch (e) {
-        console.error("Error decoding URI component:", e);
-    }
+    // DO NOT decode URI components in the key. The AWS SDK v3 automatically encodes the key when creating the signature.
+    // If we decode it here, the SDK will re-encode it, leading to a double-encoded URL in the signature, which causes SignatureDoesNotMatch.
+    // We should pass the exact key as it was requested by the client (which is already encoded).
 
     try {
         const command = new GetObjectCommand({
